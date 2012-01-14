@@ -1,0 +1,16 @@
+#!/bin/bash
+
+
+source gestion_config
+
+
+fichier="$1"
+variable="$2"
+
+if exists "$1" "$2" ; then
+	readConf "$fichier" "$variable"
+	echo "$(eval echo \$${variable})"
+	exit 0
+else
+	exit 1
+fi

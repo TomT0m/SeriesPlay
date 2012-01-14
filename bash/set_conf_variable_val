@@ -1,0 +1,21 @@
+#!/bin/bash
+
+
+source gestion_config
+
+
+fichier="$1"
+variable="$2"
+value="$3"
+
+# valuebis=$(echo "$value" | sed "s/\\\'/\\\'/g" )
+
+eval "${variable}='${value}'"
+	
+# if exists "$1" "$2" ; then
+	writeConf "$fichier" "$variable" ""
+#	echo "$(eval echo \$${variable})"
+#	exit 0
+#else
+#	exit 1
+#fi
