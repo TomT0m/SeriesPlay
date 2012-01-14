@@ -15,7 +15,7 @@ import threading
 #reload(sys)
 #sys.setdefaultencoding(locale.getdefaultlocale()[1])
 
-path_to="/home/tom/share/"
+path_to="./ui"
 
 
 try:
@@ -478,7 +478,7 @@ class App:
 		
 		#Set the Glade file
 		#self.gladefile = path_to + "IfacePlay.glade"  
-		self.gladefile = path_to + "IfacePlay2.ui"  
+		self.gladefile = os.path.join(path_to,"IfacePlay.ui")
 		builder = gtk.Builder()
 		builder.add_from_file(self.gladefile)
 

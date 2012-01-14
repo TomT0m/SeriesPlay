@@ -80,7 +80,11 @@ class seriesManager:
 	def get_current_serie(self):
 		return self.executer.get_output(["series","-C"]).strip().strip(" ")
 	def get_num_current_saison(self,nom):
-		return int(self.executer.get_output(["series","-N","-D",nom]).strip())
+		res = self.executer.get_output(["series","-N","-D",nom]).strip()
+		if res != "":
+			return int(res)
+		else:
+			return None
 
 	# @trace
 	def get_serie_list(self):
@@ -91,12 +95,17 @@ class seriesManager:
 		return liste_en_chaine
 
 	def get_current_episode(self,nom_serie,num_saison):
-		ficname=self.get_path_to_season(nom_serie,num_saison) + self.config_file_season_name
+		ficname=""
+		try:
+			ficname=self.get_path_to_season(nom_serie,num_saison) + self.config_file_season_name
+		except (ValueError,TypeError):
+			return None
+
 		if os.path.exists(ficname):
 			try:
 				num = int(self.read_conf_var(ficname,self.play_current_episode_var).strip())
 				return num
-			except  ValueError :
+			except  (ValueError,TypeError) :
 				return None
 		return None
 
@@ -272,7 +281,11 @@ class bashManagedSerie(Serie):
 		return self.manager.get_num_current_saison(self.nom)
 
 	def get_num_prochain_episode(self):
-		num=self.manager.get_current_episode(self.nom,self.get_num_saison_courante())
+		try:
+			num=self.manager.get_current_episode(self.nom,self.get_num_saison_courante())
+		except ValueError,TypeError:
+			num=None
+
 		if num != None:
 			return num
 		else:

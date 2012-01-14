@@ -1,0 +1,14 @@
+
+This program is a basic and experimental TV series player, for my personal use : do not expect a bug free and working out of the box program
+
+It uses mplayer as video player.
+
+Programming languages : a mix of bash (started as bash script) and python
+
+Configuration : needs a ~/.play_season file with at least
+BASE=[base directory] # /myhome/Desktop/tv/ in my case
+
+Seasons must be in $BASE/[Serie name]/season {1,2,...}/ directories.
+
+python dependancies (debian packages) : python-decorators, python-lxml
+
