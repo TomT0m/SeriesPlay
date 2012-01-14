@@ -1,0 +1,77 @@
+#!/bin/bash
+
+FIC_CONF=.play_season
+MOTIF=SAISx@[sS]SAIS[Ee]0@[sS]SAIS[Ee]@[sS]SAIS[Ee]0@[sS]SAIS[Ee][Pp]@SAIS@[sS]0SAIS[Ee]0@[sS]0SAIS[Ee]@[sS]0SAIS[Ee]0@[sS]0SAIS[Ee][Pp]@0SAIS
+
+source gestion_config
+source serie_functions
+
+read_conf "SEASON" 1 "$FIC_CONF"
+read_conf "SEASON_MAX" 10 "$FIC_CONF"
+
+CMD="play"
+# getopt "s:"
+usage="$0 [-l(istall)|-g] [-s numseason [-e numep | -q] ] [-h print this help]"
+while getopts "lgqs:o:e:h:SG:f:d:t:" options; do
+  case $options in
+    s ) SEASON=$OPTARG;;
+    e ) NUMEP=$OPTARG;;
+    q ) QUERY_NUMEP="true";;
+    l ) LIST="ok";;
+    f ) FPS=$OPTARG ;;
+    S ) OPT="-S" ;;
+    G ) SKIPTIME=$OPTARG;;
+    d ) DECAYTIME=$OPTARG;;
+    g ) CMD="getnum" ;;
+    t ) SUBTITLES="-t" ; SUBFILE="$OPTARG" ;;
+    \? ) echo $usage
+         exit 1;;
+    * ) echo $usage
+          exit 1;;
+  esac
+done
+
+###########################
+# list rep
+###########################
+
+if [ "$CMD" == "getnum" ] ; then
+	echo "$SEASON"
+	exit
+fi
+
+if [ ! -z "$LIST" ] ; then
+	for x in $( seq 1 $SEASON_MAX) ; do
+		rep=$(get_season_rep $x);
+		if [ ! -z "$rep" ] ; then
+			echo -e "$x" "\n" "$rep"
+		fi
+	done
+	exit 0;
+fi
+
+###################
+# else
+###################
+
+rep=$(get_season_rep $SEASON)
+
+if [ ! -z "$rep" ] ; then
+	init_rep "$rep" "$SEASON"
+	cd "$rep"
+	if [ ! -z "$NUMEP" ] ; then 
+		SEASON="$SEASON" NAME="$NAME" play $OPT -e $NUMEP $(if [ ! -z "$SKIPTIME" ] ; then echo -g $SKIPTIME; fi) -f "$FPS" $(if [ ! -z "$DECAYTIME" ] ; then echo -s $DECAYTIME; fi) "$SUBTITLES" "$SUBFILE"
+	elif [ ! -z "$QUERY_NUMEP" ] ; then 
+		NAME="$NAME" SEASON="$SEASON" play $OPT -e "$(play -l|zenity --list --column 1 --column fic --column \"cur?\")" $(if [ ! -z "$SKIPTIME" ] ; then echo -g $SKIPTIME; fi) -f "$FPS" $(if [ ! -z "$DECAYTIME" ] ; then echo -s $DECAYTIME; fi) "$SUBTITLES" "$SUBFILE"
+
+	else
+		SEASON="$SEASON" NAME="$NAME" play $OPT $(if [ ! -z "$SKIPTIME" ] ; then echo -g $SKIPTIME; fi ) -f "$FPS"  $(if [ ! -z "$DECAYTIME" ] ; then echo -s $DECAYTIME; fi ) "$SUBTITLES" "$SUBFILE"
+
+	fi
+	if [ $? == 1 ] ; then
+		SEASON=$((SEASON+1))
+	fi
+	cd -
+	write_conf_var SEASON $FIC_CONF
+fi
+

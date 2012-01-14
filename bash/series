@@ -1,0 +1,114 @@
+#!/bin/bash
+
+FIC_CONF=~/.play_season
+#MOTIF=SAISx@[sS]SAIS[Ee]0@[sS]SAIS[Ee]@[sS]SAIS[Ee]0@[sS]SAIS[Ee][Pp]@SAIS@SAIS.
+
+source gestion_config
+source serie_functions
+
+read_conf "NAME" "" $FIC_CONF
+#read_conf "SEASON" 1 $FIC_CONF
+read_conf "BASE" "/home/tom/Desktop/Séries/" $FIC_CONF
+#read_conf "SEASON_MAX" 10 $FIC_CONF
+
+
+# getopt "s:"
+usage="$0 [-g|-l|-p|-c|-g skiptime| -n num saison|-D|-f fps] [-h print this help]"
+while getopts "pcglSD:n:e:CNps:f:d:" options; do
+  case $options in
+    #s ) SEASON=$OPTARG;;
+    p ) PROMPT="ok";;
+    c ) CONTINUE="ok";;
+    s ) SKIPTIME="$OPTARG";;
+    d ) DECAYTIME="$OPTARG";;
+    S ) PROMPT_SUBS="-S";;
+    f ) FPS="$OPTARG";;
+    D ) NOM_SERIE="$OPTARG";;
+    n ) NUM_SAISON="$OPTARG" 
+	SEASON="$NUM_SAISON"
+	;;
+    e ) NUM_EP="$OPTARG" ;;
+    N ) CMD="getnum" ;;
+    g ) CMD="getname" ;;
+    p ) CMD="getpath" ;;
+    l ) CMD="list" ;;
+    C ) CMD="print current" ;;
+    \? ) echo $usage
+         exit 1;;
+    * ) echo $usage
+          exit 1;;
+  esac
+done
+
+if [  "$CMD" == "print current" ] ; then
+	echo $NAME
+	exit
+fi
+
+if [[ "$CMD" == "getname" || "$CMD" == "getnum" || "$CMD" == "getpath" ]] ; then
+	if [ -z "$NOM_SERIE" ] ; then NOM_SERIE="$NAME"; fi
+	if [ -z "$NUM_SAISON" ] ; then
+		cd "$BASE"/*"$NOM_SERIE"*
+		NUM_SAISON="$(serie_next -g)"
+	fi
+	# if [ ! -z "$NOM_SERIE" ] ; then 
+	essai="$(echo "$BASE"/*"$NOM_SERIE"*/*"$NUM_SAISON"*)"
+	#else
+	#	essai="$(echo "$BASE"/*"$NAME"*/*"$NUM_SAISON"*)"
+	#fi
+	case "$CMD" in 
+	"getname" )
+		if [ -d "$essai" ] ; then
+			echo "$essai"
+		else
+			echo "$BASE/$NOM_SERIE/saison $NUM_SAISON"
+		fi
+		exit
+	;;
+	"getnum" )
+		echo "$NUM_SAISON" 
+		exit
+	;;
+	"getpath" )
+		echo "$BASE/$NOM_SERIE"
+	;;
+	esac
+fi
+
+if  [ "$CMD" == "list" ] ; then
+	for x in "$BASE"/*; do
+		if [ -d "$x" ] ; then
+			echo "$(basename "$x")";
+		fi
+	done
+
+	exit
+fi
+
+CMD=serie_next $PROMPT_SUBS
+
+if [ -n "$PROMPT" -o -z "$NAME" ] ; then
+	NAME=$( $0 -l| zenity --list  --column="Série")
+	cd "$BASE/$NAME"
+ 	SEASON=$(serie_next -l | zenity --list  --column="Num" --column="rep" --print-column=1)
+fi
+
+if [ ! -z "$NOM_SERIE" ] ; then 
+	NAME="$NOM_SERIE"
+fi
+
+cd "$BASE/$NAME"
+echo "$SEASON" " " "$NUM_EP"
+if [[ ! -z "$SEASON"  && ! -z "$NUM_EP" ]] ; then
+	NAME="$NAME" serie_next $PROMPT_SUBS -s $SEASON -q -e "$NUM_EP" $(if [ ! -z "$SKIPTIME" ] ; then echo -G $SKIPTIME; fi) -f "$FPS" $(if [ ! -z "$DECAYTIME" ] ; then echo -d $DECAYTIME; fi)
+elif [ ! -z "$SEASON" ] ; then
+	NAME="$NAME" serie_next $PROMPT_SUBS -s $SEASON -q $(if [ ! -z "$SKIPTIME" ] ; then echo -G $SKIPTIME; fi)  -f "$FPS"  $(if [ ! -z "$DECAYTIME" ] ; then echo -d $DECAYTIME; fi ) 
+elif [ ! -z "$NUM_EP" ] ; then
+	NAME="$NAME" serie_next $PROMPT_SUBS -q -e "$NUM_EP" $(if [ ! -z "$SKIPTIME" ] ; then echo -G $SKIPTIME; fi)  -f "$FPS"  $(if [ ! -z "$FPS" ] ; then echo -f $FPS ; fi) $(if [ ! -z "$DECAYTIME" ] ; then echo -d $DECAYTIME; fi )
+else
+	NAME="$NAME" serie_next $PROMPT_SUBS $(if [ ! -z "$SKIPTIME" ] ; then echo -G $SKIPTIME; fi)  -f "$FPS" $(if [ ! -z "$DECAYTIME" ] ; then echo -d $DECAYTIME; fi )
+fi
+
+write_conf_var "NAME" "$FIC_CONF"
+write_conf_var "BASE" "$FIC_CONF"
+

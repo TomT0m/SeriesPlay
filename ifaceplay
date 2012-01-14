@@ -1,0 +1,548 @@
+#!/usr/bin/env python2.6
+# coding=utf-8
+
+# from __future__ import unicode_literals
+import pdb
+
+
+import sys
+import os
+import subprocess
+import numbers
+import threading
+
+#import sys, locale
+#reload(sys)
+#sys.setdefaultencoding(locale.getdefaultlocale()[1])
+
+path_to="/home/tom/share/"
+
+
+try:
+	import pygtk
+	pygtk.require("2.0")
+except:
+	print("pas gtk")
+try:
+	import gtk
+	#import gtk.glade
+	import gobject
+	import gio
+	import pdb
+except:
+	sys.exit(1)
+
+gtk.gdk.threads_init()
+
+from pysrt import SubRipFile, SubRipItem, SubRipTime
+
+# import play_subdl_subdownloader.subdownloader.modules as modules
+from gobj_player import *
+from play_subdl import TVsubtitlesSubdownloader as subdownloader_subdownloader 
+# import play_subdl_subdownloader.modules as modules
+
+# import play_subdl_subdownloade
+
+import cli
+import mplayer_slave
+import re
+import trace
+
+from cli import command_executer, command_line_generator, config_manager
+
+from serie_manager import seriesManager, bashManagedEpisode, bashManagedSerie, bashManagedSeriesData, bashManagedSerieFactory
+
+class subtitles_store:
+	def __init__(self,filename):
+		self.filename=filename
+			
+		self.model=gtk.ListStore(object,str)
+		self.srtModel=[]
+		if not os.path.exists(filename) :
+			raise(FileNameError(filename))
+
+		try:
+			self.srtModel=SubRipFile.open(path=filename)
+		except UnicodeDecodeError as unic:
+			print(unic)
+			try:
+				print("trying ..." ,"ISO-8859-1")
+				self.srtModel=SubRipFile(path=filename,encoding="iso-8859-1")
+			except Exception as e :
+				print(e)
+				self.model=None
+		except IOError as error:
+			print("Impossible de lire le fichier de sous titre")
+
+		for line in self.srtModel:
+			# print("appending",line)
+			self.model.append([line,line.text])
+
+	def get_model(self):
+		return self.model
+	
+
+
+def thr_sub_dl(model,subdl):
+	
+	print("thr method : calling")
+	serie=model.getCurrentSerie()
+
+	nom = serie.nom
+	path = serie.get_path_to_current_season()
+	numep = serie.get_num_episode_courant()
+	numsais = serie.get_num_saison_courante()
+	print("calling")
+	subdl.get_for_ep(serie.nom,numsais,numep,path) 
+	print("called")
+
+
+	
+class PlayEventManager:
+
+	def update_serie_list(self,monitor,fichier,data,event):
+		print("nouvelle série ?")
+		model=self.iface.getitem("SerieListCombo").get_model()
+		serieList = self.manager.get_serie_list()
+		new_items = [x for x in serieList if not self.serieModel.series.has_key(x) ]
+		for x in new_items:
+			self.serieModel.add_serie(x)
+			model.append([x])
+		
+
+	def update_subs_and_file(self,monitor,fichier,data,event):
+		print("nouveau sub / vidéo ?")
+		if ( event == gio.FILE_MONITOR_EVENT_CREATED ):
+			self.update_serie()
+
+	def open_filemanager(self,widg):
+		command_launch = command_executer()
+		command_gen = command_line_generator("xdg-open")
+		rep = self.serieModel.getCurrentSerie().get_path_to_current_season()
+		command_gen.add_option_single(rep)
+
+		command_launch.get_output(command_gen.get_command())
+
+	def __init__(self, iface,serieModel):
+		self.iface=iface
+		self.currentProcess=None
+		print ("creating event man")
+		self.playButtons=["Play","SlaveMplayerPlay","DlSub","OpenRep"]
+		self.serieModel=serieModel
+		self.update_serie()
+
+		print("SEtting up file monitoring ... ")
+		nomfic=serieModel.get_base_path()
+		fichier = gio.File(nomfic)
+		if(fichier):
+			print("monitoring {0}".format(nomfic))
+			print(fichier)
+			self.monitor = fichier.monitor_directory()
+			self.monitor.connect("changed",self.update_serie_list)
+			print("monitor",self.monitor)
+			print("done")
+		# self.MPlayer=None
+		self.player_status = Player_status()
+		cellpb = gtk.CellRendererText()
+
+		cellpbtext = gtk.CellRendererText()
+		time=gtk.TreeViewColumn("Début",cellpb)
+		time.set_cell_data_func(cellpb,self.subtitle_begin_time_getter)
+
+		column=gtk.TreeViewColumn("Sous-Titre",cellpbtext,text=1)
+
+		column.set_cell_data_func(cellpbtext,self.subtitle_line_text_getter)
+
+		treeview = self.iface.getitem("SubtitlesTreeView")
+		self.iface.getitem("SubtitlesTreeView").append_column(time)
+		num_trad_column = self.iface.getitem("SubtitlesTreeView").append_column(column)
+		self.iface.getitem("SubtitlesTreeView").set_enable_search(True)
+		print("search column : " , num_trad_column)
+		self.iface.getitem("SubtitlesTreeView").set_search_column(1) # num_trad_column-1)
+		
+		print("enable_search : " , treeview.get_enable_search())
+
+		print("nbcols ",len(treeview.get_columns()))
+
+		self.iface.getitem("SubtitlesTreeView").set_search_equal_func(self.subtitle_comparison_function)
+		# self.MPlayer=mplayer_slave.player(self.iface.getitem("VideoZone").window.xid)
+		# self.MPlayer=mplayer_slave.player(None) # self.iface.getitem("VideoZone").window.xid)
+		# print ("XID :",self.iface.getitem("VideoZone").window.xid)
+		# self.payer_status=None
+		# CellRenderer
+
+	def subtitle_comparison_function(self,model,column,key,iter):
+		text=model.get_value(iter, 0).text.lower()
+		# print("searching")
+		if(re.match(r".*"+key,text,re.IGNORECASE)):
+			return False
+		return True
+
+	def started_search(self,treeview):
+		print ("search started")
+		
+	def subtitle_line_text_getter(self,column,cell,model,iter):
+		cell.set_property('text', model.get_value(iter, 0).text)
+		return 	
+ 
+	def subtitle_begin_time_getter(self,column,cell,model,iter):
+		cell.set_property('text', unicode(model.get_value(iter, 0).start))
+		return
+	# def get_beg_time(self,model	
+	
+		
+	def execute_play_command(self,cmd,cwd=None):
+		print(cmd)
+
+		print("launching")
+		process = subprocess.Popen(cmd, shell=False, bufsize=0, stdout=subprocess.PIPE,cwd=cwd)
+		self.currentProcess=process.stdout
+		print("launched")
+		self.playing()
+		self.handle_file = gobject.io_add_watch(self.currentProcess,gobject.IO_HUP,self.end_of_play,priority=gobject.PRIORITY_DEFAULT_IDLE)
+		self.handle_end = gobject.io_add_watch(self.currentProcess,gobject.IO_IN,self.read,priority=gobject.PRIORITY_DEFAULT_IDLE)
+		self.currentProcess=process
+
+	def read(self, widg, condition):
+		if self.currentProcess != None :
+			# print ("communicating")
+			self.currentProcess.stdout.read(1000)
+			if self.currentProcess.poll() != None :
+				pass
+			return True
+		else :
+			print ("callback deletion")
+			return False
+
+	def play(self,widg):
+		print ("playing ... " + self.serieModel.getCurrentSerie().nom)
+		if self.currentProcess == None :
+			serie = self.serieModel.getCurrentSerie()
+			print (self.serieModel.getCurrentSerie().nom)
+			command=command_line_generator("serie_next")
+			chemin_serie=self.serieModel.getCurrentSerie().get_path_to_serie()
+			command.add_option_param("-s",unicode(serie.get_num_saison_courante()))
+			command.add_option_param("-e",unicode(serie.get_num_episode_courant()))
+			command.add_option_param("-G",unicode(serie.get_skip_time()))
+			command.add_option_param("-f",serie.get_fps())
+			command.add_option_param("-d",unicode(serie.get_decay_time()))
+			command.add_option_param("-t",unicode(serie.get_subtitle_file()))
+			os.environ["SEASON"]=self.serieModel.getCurrentSerie().nom
+			self.execute_play_command(command.get_command(),cwd=chemin_serie)
+	
+	def sub_selected(self,treeview, path, view_column):
+		pass
+		# if s
+
+	def end_of_play(self,widg,condition):
+		print("end of play !")
+		map(lambda nom: 
+			self.iface.getitem(nom).set_sensitive(True),
+			self.playButtons)
+		self.currentProcess=None
+		if not self.iface.getitem("SetupModeCheck").get_active():
+			self.serieModel.getCurrentSerie().episode_vu()
+			self.update_serie()
+                gobject.source_remove(self.handle_file) #  = gobject.io_add_watch(self.currentProcess,gobject.IO_HUP,self.end_of_play)
+                gobject.source_remove(self.handle_end) #  = gobject.io_add_watch(self.currentProcess,gobject.IO_IN,self.read)
+
+		return False	
+
+	def play_with_sub(self,widg):
+		#if self.currentProcess == None :
+		#	self.execute_play_command(["series","-S"])
+		print("playing in a slave MPlayer !!")
+		#if self.MPlayer == None:
+			# self.MPlayer=mplayer_slave.player(self.iface.getitem("VideoZone").window.xid)
+		#	self.MPlayer=mplayer_slave.player() #self.iface.getitem("VideoZone").window.xid)
+		#	pass
+		# else:
+		# self.player_status.play
+		serie=self.serieModel.getCurrentSerie()
+		filename=serie.get_absolute_filename(serie.get_video_list()[0])
+		path = serie.get_path_to_current_season()
+		subfile = path + serie.get_subtitle_list()[0]
+		if filename != None :
+			command="loadfile \"%s\"" % (filename)
+			# print(command)
+			self.player_status.play(filename)
+			# self.MPlayer.play(filename)
+			# self.MPlayer.set_fullscreen()
+			(width,height)=self.player_status.get_video_resolution()
+			print(width,height)
+			drawing_area = self.iface.getitem("VideoZone")
+			drawing_area.set_size_request(width, height)
+			gdkwindow = drawing_area.window
+			print("trying to go fullscreen ...")
+			new_window = gtk.Window(gtk.WINDOW_TOPLEVEL)
+			new_window.fullscreen()
+			drawing_area.set_parent_window(new_window.get_parent_window())
+
+			# self.player_status=Player_status(self.MPlayer)
+			self.player_status.play(filename)
+			self.player_status.set_playing()
+			self.player_status.set_subtitles(subfile)
+			self.player_status.connect("play_ended",self.end_of_play)
+
+	def prompted_play(self,widg):
+
+		if self.currentProcess == None :
+			self.execute_play_command(["series","-p"])
+
+#	def get_seconds_from_time(self,sub_rip_time):
+#		val = sub_rip_time.ordinal * 1000
+#		return 
+	
+	def set_subdownloader(self,subdl):
+		self.subtitle_downloader = subdl
+
+	def search_subtitles(self,btn):
+		print("searching ... in a thread")
+		chemin_serie=self.serieModel.getCurrentSerie().get_path_to_current_season()
+
+		nom_serie = self.serieModel
+		
+		#arguments=[self.subtitle_downloader,nom_serie,num_saison,num_ep,chemin_serie]
+		#methode=self.subtitle_downloader.get_for_ep		
+
+		arguments=[self.serieModel,self.subtitle_downloader]
+		methode=thr_sub_dl		
+		
+		self.subdl_worker = threading.Thread(name="thread_sub"+chemin_serie,args=arguments,target=methode)
+		self.subdl_worker.start()
+
+		# self.subtitle_downloader.get_from_filepath(chemin_serie)
+		print("searching done ! ...")
+
+	def subtitle_seek(self,treeview,path,column):
+		(model,iter)=treeview.get_selection().get_selected()
+		time = model.get_value(iter, 0).start
+		self.player_status.handle_seek(time)
+	
+	def subtitle_sync(self,button):
+		treeview = self.iface.getitem("SubtitlesTreeView")
+
+		(model,iter)=treeview.get_selection().get_selected()
+		time = model.get_value(iter, 0).start.ordinal / 1000
+		in_video_time = self.player_status.get_current_time()
+		sub_delay = self.player_status.get_subtitles_delay()
+
+		delay = time - in_video_time
+		print("time =",time,"in vid =",in_video_time, "sub_delay",sub_delay)
+		self.player_status.set_subtitles_delay(delay)
+		
+		#print (it
+	def playing(self):
+		
+		map(lambda nom: 
+			self.iface.getitem(nom).set_sensitive(False), self.playButtons)
+		return ( self.currentProcess == None )
+	
+	def update_serie(self):
+		serie=(self.serieModel.getCurrentSerie())
+
+		newsaison=int(serie.get_num_saison_courante())
+		num = serie.get_num_episode_courant()
+		if num != None :
+			newep=int(serie.get_num_episode_courant())
+		else:
+			newep=1
+
+		print("updating serie ",newsaison," ",newep)
+		self.iface.getitem("numSaisonSpin").get_adjustment().set_value(newsaison)
+		self.iface.getitem("numSaisonSpin").update()
+		
+		self.iface.getitem("numEpSpin").set_value(newep)
+		
+		print ("skip_time:" ,serie.get_skip_time())
+		self.iface.getitem("skipTimeSpin").set_value(serie.get_skip_time())
+		print ("decay_time:" ,serie.get_decay_time())
+		self.iface.getitem("decayTimeSpin").set_value(serie.get_decay_time())
+
+		# self.iface.getitem("FPSComboBox").get_child().set_text(serie.get_fps())
+
+		vid_list=serie.get_video_list()
+		if len(vid_list) > 0 :
+			self.iface.getitem("NomficLabel").set_text(serie.get_video_list()[0])
+		self.update_subs()
+
+	def selected_serie_changed(self,widg):
+		# print("callback")
+
+		itera=widg.get_active_iter()
+		# print(type(itera),itera)
+		if itera != None:
+			val = widg.get_model().get_value(widg.get_active_iter(),0)
+			# print("changed" + val )
+			self.serieModel.setCurrentSerieByName(val)
+			self.update_serie()
+
+	def put_monitor_on_saison(self):
+		path = self.serieModel.getCurrentSerie().get_path_to_current_season()
+                        
+                self.monitor_serie = None
+                        
+                path = gio.File(path)
+                if(path):
+                        self.monitor_serie = path.monitor_directory()
+                        self.monitor_serie.connect("changed",self.update_subs_and_file)
+
+	def update_num_saison(self,widg):
+		print("saison courante num changed ?")
+		self.serieModel.getCurrentSerie().set_num_saison_courante(int(widg.get_value()))
+		path = self.serieModel.getCurrentSerie().get_path_to_current_season()
+		
+		#self.monitor_serie = None
+
+		#path = gio.File(path)
+		#if(path):
+		#	self.monitor_serie = path.monitor_directory()
+		#	self.monitor_serie.connect("changed",self.update_subs_and_file)
+		self.update_serie()
+		self.put_monitor_on_saison()
+	
+	def update_num_episode(self,widg):
+		print("ep courante num changed ?")
+		self.serieModel.getCurrentSerie().set_num_episode_courant(int(widg.get_value()))
+		self.update_serie()
+	
+	def update_skip_time(self,widg):
+		print("skip time changed ?")
+		self.serieModel.getCurrentSerie().set_skip_time(int(widg.get_value()))
+
+	def update_decay_time(self,widg):
+		print("decay time changed ? ",(widg.get_value()))
+		
+		self.serieModel.getCurrentSerie().set_decay_time(int(widg.get_value()))
+
+	def update_fps(self,widg):
+		print("fps time changed ?")
+		entry=widg.get_child()
+		val = entry.get_text() 
+		print("changed" + val )
+		self.serieModel.getCurrentSerie().set_fps(val)
+
+
+
+
+
+	def update_subtitle_file(self,widg):
+		itera=widg.get_active_iter()
+		# print(type(itera),itera)
+		if itera != None:
+			val = widg.get_model().get_value(widg.get_active_iter(),0)
+			self.serieModel.getCurrentSerie().set_subtitle_file(val)
+			absolute_subfile=os.path.join(self.serieModel.getCurrentSerie().get_path_to_current_season(),val)
+			self.subtitle_file_model=subtitles_store(absolute_subfile)
+			self.iface.getitem("SubtitlesTreeView").set_model(self.subtitle_file_model.get_model())
+	def update_subs(self):
+		liste=self.serieModel.getCurrentSerie().get_subtitle_list()
+		self.populate_combo_with_items(self.iface.getitem("CandidateSubsCombo"),liste)
+		self.update_subtitle_file(self.iface.getitem("CandidateSubsCombo"))		
+
+	def populate_combo_with_items(self,combo,items):
+		ls = None
+		if combo.get_model() != None:
+			ls=combo.get_model()
+			ls.clear()
+		else:
+			ls=gtk.ListStore(str)
+			cellr = gtk.CellRendererText()
+			combo.set_model(ls)	
+			combo.pack_start(cellr)
+			combo.add_attribute(cellr, 'text', 0)
+			combo.set_active(0)
+		
+		for i in items:
+			print("populating with {0}".format(i)) 
+			ls.append([str(i)])
+
+		combo.set_active(0)
+		return combo
+
+	def end(self,widg):
+		self.player_status.end_player()
+		gtk.main_quit(widg)
+
+	def video_keypress(self,widgi,event):
+		print(event.hardware_keycode)
+		print("keypressed")
+		print(keyval)
+	def set_manager(self, man):
+		self.manager=man
+		
+class App:
+	"""This is an Hello World GTK application"""
+	
+	def __init__(self):
+		
+		#Set the Glade file
+		#self.gladefile = path_to + "IfacePlay.glade"  
+		self.gladefile = path_to + "IfacePlay2.ui"  
+		builder = gtk.Builder()
+		builder.add_from_file(self.gladefile)
+
+		#self.wTree = gtk.glade.XML(self.gladefile) 
+		self.wTree = builder # .get_object(MainWindow") 
+		
+		self.bashmanager = seriesManager()
+	
+		bash_factory = bashManagedSerieFactory(self.bashmanager)
+
+		serieList = self.bashmanager.get_serie_list()
+
+		print("creating serie manager")
+		self.Series = bash_factory.createSerieManager()
+		print("created serie manager")
+		
+		serieList.insert(0,self.bashmanager.get_current_serie());
+		self.eventMgr=PlayEventManager(self,self.Series)
+		self.eventMgr.populate_combo_with_items(self.getitem("SerieListCombo"), serieList)
+		subdl = subdownloader_subdownloader()
+		# subdl=None
+		self.eventMgr.set_subdownloader(subdl)
+		self.eventMgr.set_manager(self.bashmanager)
+		self.eventMgr.update_serie()
+		self.eventMgr.put_monitor_on_saison()
+		
+		dic = { "on_Play_clicked" : self.eventMgr.play,
+			"on_SlaveMplayerPlay_clicked" : self.eventMgr.play_with_sub,
+			"on_PromptedPlay_clicked" : self.eventMgr.prompted_play,
+			"on_SerieListCombo_changed" : self.eventMgr.selected_serie_changed,
+			"on_MainWindow_destroy" : gtk.main_quit,
+			"on_numSaisonSpin_value_changed" : self.eventMgr.update_num_saison,
+			"on_numEpSpin_value_changed" : self.eventMgr.update_num_episode,
+			"on_skipTimeSpin_value_changed" : self.eventMgr.update_skip_time,
+			"on_decayTimeSpin_value_changed" : self.eventMgr.update_decay_time,
+			# "on_FPSComboBox_changed": self.eventMgr.update_fps,
+			"on_CandidateSubsCombo_changed": self.eventMgr.update_subtitle_file,
+			"video_keypress": self.eventMgr.video_keypress,
+			"on_SubtitlesTreeView_row_activated": self.eventMgr.subtitle_seek ,
+			"on_Synchro_Button_pressed": self.eventMgr.subtitle_sync , 
+#			"on_SubtitlesTreeView_start_interactive_search" : self.eventMgr.started_searchi
+			"on_OpenRep_clicked":self.eventMgr.open_filemanager,
+			"on_DlSub_clicked":self.eventMgr.search_subtitles
+			
+		}
+
+		# self.window = self.wTree.get_widget("MainWindow")
+		self.window = self.wTree.get_object("MainWindow")
+		
+		# self.wTree.signal_autoconnect(dic)
+		self.wTree.connect_signals(dic)
+		
+		if (self.window):
+			self.window.connect("destroy", self.eventMgr.end )
+		else:
+			print ("Pas trouvé")
+
+		
+
+	def getitem(self, key):
+        	#return self.wTree.get_widget(key)
+        	return self.wTree.get_object(key)
+
+if __name__ == "__main__":
+	hwg = App()
+	gtk.main()
+
