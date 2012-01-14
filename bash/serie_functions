@@ -1,0 +1,58 @@
+#! /bin/bash
+
+source gestion_config
+
+BASE_FIC_CONF=~/.play_season
+
+function get_season_rep(){
+	
+	local num_season=$1
+
+	local founded=0
+	rep=""
+	for cand in *$num_season*; do 
+		if [ -d "$cand" ]; then 
+			rep="$cand"
+		fi
+	done
+
+	echo $rep
+}
+
+function init_rep(){ # $1 rep, $2 numsais
+	local rep=$1
+	local numsais=$2
+
+	if [  ! -f "$rep/.play_conf" ] ; then
+		if [ "$numsais" -gt 1  ] ; then
+			rep_pres=$(get_season_rep $((numsais-1)) )
+
+			if [ -f "$rep_pres/.play_conf" ] ; then
+				cp "$rep_pres/.play_conf" "$rep"
+			fi
+		fi
+		MOTIF=$(echo "$MOTIF" | sed "s/SAIS/$numsais/g" )
+		write_conf_var MOTIF "$rep/.play_conf"
+		CUR=1
+		write_conf_var CUR "$rep/.play_conf"
+	fi
+	
+}
+
+function get_serie_rep(){
+	NAME="$1"
+	read_conf "BASE" "/home/tom/Desktop/Séries/" "$BASE_FIC_CONF"
+	echo "$BASE/$1"	
+}
+
+function get_serie_ficonf(){
+	echo $(get_serie_rep "$1")/.play_season
+}
+
+function get_serie_currentseason(){
+	local ficonf=$(get_serie_ficonf "$1" )
+	read_conf "SEASON" "1" "$ficonf"
+	echo "$SEASON"
+}
+
+
