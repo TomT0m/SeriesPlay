@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
-  <requires lib="gtk+" version="2.16"/>
+  <!-- interface-requires gtk+ 3.0 -->
   <object class="GtkWindow" id="MainWindow">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
@@ -189,6 +189,9 @@ MPLayer esclave</property>
                     <property name="n_rows">2</property>
                     <property name="n_columns">6</property>
                     <child>
+                      <placeholder/>
+                    </child>
+                    <child>
                       <object class="GtkCheckButton" id="SetupModeCheck">
                         <property name="label" translatable="yes">Mode mise au point</property>
                         <property name="use_action_appearance">False</property>
@@ -336,9 +339,6 @@ texte avant : neg</property>
                         <property name="top_attach">1</property>
                         <property name="bottom_attach">2</property>
                       </packing>
-                    </child>
-                    <child>
-                      <placeholder/>
                     </child>
                   </object>
                   <packing>

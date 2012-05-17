@@ -1,22 +1,16 @@
-#!/usr/bin/env python2.6
+#!/usr/bin/env python2.7
 # coding=utf-8
 
-# from __future__ import unicode_literals
-import pdb
-
-
+# system imports
 import sys
 import os
 import subprocess
 import numbers
 import threading
 
-#import sys, locale
-#reload(sys)
-#sys.setdefaultencoding(locale.getdefaultlocale()[1])
-
 path_to="./ui"
 
+# gtk and twisted imports
 
 try:
 	import pygtk
@@ -25,23 +19,23 @@ except:
 	print("pas gtk")
 try:
 	import gtk
-	#import gtk.glade
 	import gobject
 	import gio
-	import pdb
+	from twisted.internet import gtk2reactor
+	gtk2reactor.install()
+	from twisted.internet import reactor 
+
 except:
 	sys.exit(1)
 
 gtk.gdk.threads_init()
-
+# external libs
 from pysrt import SubRipFile, SubRipItem, SubRipTime
 
-# import play_subdl_subdownloader.subdownloader.modules as modules
+#internal imports
+
 from gobj_player import *
 from play_subdl import TVsubtitlesSubdownloader as subdownloader_subdownloader 
-# import play_subdl_subdownloader.modules as modules
-
-# import play_subdl_subdownloade
 
 import cli
 import mplayer_slave
@@ -52,7 +46,11 @@ from cli import command_executer, command_line_generator, config_manager
 
 from serie_manager import seriesManager, bashManagedEpisode, bashManagedSerie, bashManagedSeriesData, bashManagedSerieFactory
 
+
 class subtitles_store:
+	"""
+	GTK Store for showing subtitles into the UI
+	"""
 	def __init__(self,filename):
 		self.filename=filename
 			
@@ -80,26 +78,25 @@ class subtitles_store:
 
 	def get_model(self):
 		return self.model
-	
-
 
 def thr_sub_dl(model,subdl):
-	
+	"""
+TODO : Passer à twisted ?
+Téléchargment des sous-titres dans un thread
+	"""
+ 
 	print("thr method : calling")
 	serie=model.getCurrentSerie()
-
+	
 	nom = serie.nom
 	path = serie.get_path_to_current_season()
 	numep = serie.get_num_episode_courant()
 	numsais = serie.get_num_saison_courante()
-	print("calling")
+	
 	subdl.get_for_ep(serie.nom,numsais,numep,path) 
-	print("called")
-
 
 	
 class PlayEventManager:
-
 	def update_serie_list(self,monitor,fichier,data,event):
 		print("nouvelle série ?")
 		model=self.iface.getitem("SerieListCombo").get_model()
@@ -109,7 +106,6 @@ class PlayEventManager:
 			self.serieModel.add_serie(x)
 			model.append([x])
 		
-
 	def update_subs_and_file(self,monitor,fichier,data,event):
 		print("nouveau sub / vidéo ?")
 		if ( event == gio.FILE_MONITOR_EVENT_CREATED ):
@@ -120,28 +116,25 @@ class PlayEventManager:
 		command_gen = command_line_generator("xdg-open")
 		rep = self.serieModel.getCurrentSerie().get_path_to_current_season()
 		command_gen.add_option_single(rep)
-
 		command_launch.get_output(command_gen.get_command())
 
 	def __init__(self, iface,serieModel):
 		self.iface=iface
 		self.currentProcess=None
+		
 		print ("creating event man")
 		self.playButtons=["Play","SlaveMplayerPlay","DlSub","OpenRep"]
 		self.serieModel=serieModel
 		self.update_serie()
 
-		print("SEtting up file monitoring ... ")
+		print("Setting up file monitoring ... ")
 		nomfic=serieModel.get_base_path()
 		fichier = gio.File(nomfic)
 		if(fichier):
-			print("monitoring {0}".format(nomfic))
 			print(fichier)
 			self.monitor = fichier.monitor_directory()
 			self.monitor.connect("changed",self.update_serie_list)
-			print("monitor",self.monitor)
-			print("done")
-		# self.MPlayer=None
+		
 		self.player_status = Player_status()
 		cellpb = gtk.CellRendererText()
 
@@ -188,8 +181,6 @@ class PlayEventManager:
 	def subtitle_begin_time_getter(self,column,cell,model,iter):
 		cell.set_property('text', unicode(model.get_value(iter, 0).start))
 		return
-	# def get_beg_time(self,model	
-	
 		
 	def execute_play_command(self,cmd,cwd=None):
 		print(cmd)
@@ -232,9 +223,8 @@ class PlayEventManager:
 	
 	def sub_selected(self,treeview, path, view_column):
 		pass
-		# if s
 
-	def end_of_play(self,widg,condition):
+	def end_of_play(self,widg,condition=None):
 		print("end of play !")
 		map(lambda nom: 
 			self.iface.getitem(nom).set_sensitive(True),
@@ -243,11 +233,15 @@ class PlayEventManager:
 		if not self.iface.getitem("SetupModeCheck").get_active():
 			self.serieModel.getCurrentSerie().episode_vu()
 			self.update_serie()
-                gobject.source_remove(self.handle_file) #  = gobject.io_add_watch(self.currentProcess,gobject.IO_HUP,self.end_of_play)
-                gobject.source_remove(self.handle_end) #  = gobject.io_add_watch(self.currentProcess,gobject.IO_IN,self.read)
-
+                gobject.source_remove(self.handle_file)
+                gobject.source_remove(self.handle_end)
 		return False	
 
+	def end_of_play_internal(self,obj):
+		print("end_of_internal_play !")
+		if not self.iface.getitem("SetupModeCheck").get_active():
+			pass
+	
 	def play_with_sub(self,widg):
 		#if self.currentProcess == None :
 		#	self.execute_play_command(["series","-S"])
@@ -257,17 +251,13 @@ class PlayEventManager:
 		#	self.MPlayer=mplayer_slave.player() #self.iface.getitem("VideoZone").window.xid)
 		#	pass
 		# else:
-		# self.player_status.play
 		serie=self.serieModel.getCurrentSerie()
 		filename=serie.get_absolute_filename(serie.get_video_list()[0])
 		path = serie.get_path_to_current_season()
 		subfile = path + serie.get_subtitle_list()[0]
 		if filename != None :
 			command="loadfile \"%s\"" % (filename)
-			# print(command)
 			self.player_status.play(filename)
-			# self.MPlayer.play(filename)
-			# self.MPlayer.set_fullscreen()
 			(width,height)=self.player_status.get_video_resolution()
 			print(width,height)
 			drawing_area = self.iface.getitem("VideoZone")
@@ -275,43 +265,32 @@ class PlayEventManager:
 			gdkwindow = drawing_area.window
 			print("trying to go fullscreen ...")
 			new_window = gtk.Window(gtk.WINDOW_TOPLEVEL)
-			new_window.fullscreen()
-			drawing_area.set_parent_window(new_window.get_parent_window())
-
+			#new_window.fullscreen()
+			#drawing_area.set_parent_window(new_window.get_parent_window())
 			# self.player_status=Player_status(self.MPlayer)
-			self.player_status.play(filename)
+			# self.player_status.play(filename)
 			self.player_status.set_playing()
 			self.player_status.set_subtitles(subfile)
 			self.player_status.connect("play_ended",self.end_of_play)
 
 	def prompted_play(self,widg):
-
 		if self.currentProcess == None :
 			self.execute_play_command(["series","-p"])
 
-#	def get_seconds_from_time(self,sub_rip_time):
-#		val = sub_rip_time.ordinal * 1000
-#		return 
-	
 	def set_subdownloader(self,subdl):
 		self.subtitle_downloader = subdl
 
 	def search_subtitles(self,btn):
+		"""TODO : Upgrade to twisted
+		async method for findind subtitles
+		"""
 		print("searching ... in a thread")
 		chemin_serie=self.serieModel.getCurrentSerie().get_path_to_current_season()
-
 		nom_serie = self.serieModel
-		
-		#arguments=[self.subtitle_downloader,nom_serie,num_saison,num_ep,chemin_serie]
-		#methode=self.subtitle_downloader.get_for_ep		
-
 		arguments=[self.serieModel,self.subtitle_downloader]
 		methode=thr_sub_dl		
-		
 		self.subdl_worker = threading.Thread(name="thread_sub"+chemin_serie,args=arguments,target=methode)
 		self.subdl_worker.start()
-
-		# self.subtitle_downloader.get_from_filepath(chemin_serie)
 		print("searching done ! ...")
 
 	def subtitle_seek(self,treeview,path,column):
@@ -321,67 +300,51 @@ class PlayEventManager:
 	
 	def subtitle_sync(self,button):
 		treeview = self.iface.getitem("SubtitlesTreeView")
-
 		(model,iter)=treeview.get_selection().get_selected()
 		time = model.get_value(iter, 0).start.ordinal / 1000
 		in_video_time = self.player_status.get_current_time()
 		sub_delay = self.player_status.get_subtitles_delay()
-
 		delay = time - in_video_time
 		print("time =",time,"in vid =",in_video_time, "sub_delay",sub_delay)
 		self.player_status.set_subtitles_delay(delay)
-		
-		#print (it
+	
 	def playing(self):
-		
 		map(lambda nom: 
 			self.iface.getitem(nom).set_sensitive(False), self.playButtons)
 		return ( self.currentProcess == None )
 	
 	def update_serie(self):
 		serie=(self.serieModel.getCurrentSerie())
-
 		newsaison=int(serie.get_num_saison_courante())
 		num = serie.get_num_episode_courant()
 		if num != None :
 			newep=int(serie.get_num_episode_courant())
 		else:
 			newep=1
-
 		print("updating serie ",newsaison," ",newep)
 		self.iface.getitem("numSaisonSpin").get_adjustment().set_value(newsaison)
 		self.iface.getitem("numSaisonSpin").update()
-		
 		self.iface.getitem("numEpSpin").set_value(newep)
-		
 		print ("skip_time:" ,serie.get_skip_time())
 		self.iface.getitem("skipTimeSpin").set_value(serie.get_skip_time())
 		print ("decay_time:" ,serie.get_decay_time())
 		self.iface.getitem("decayTimeSpin").set_value(serie.get_decay_time())
-
 		# self.iface.getitem("FPSComboBox").get_child().set_text(serie.get_fps())
-
 		vid_list=serie.get_video_list()
 		if len(vid_list) > 0 :
 			self.iface.getitem("NomficLabel").set_text(serie.get_video_list()[0])
 		self.update_subs()
 
 	def selected_serie_changed(self,widg):
-		# print("callback")
-
 		itera=widg.get_active_iter()
-		# print(type(itera),itera)
 		if itera != None:
 			val = widg.get_model().get_value(widg.get_active_iter(),0)
-			# print("changed" + val )
 			self.serieModel.setCurrentSerieByName(val)
 			self.update_serie()
 
 	def put_monitor_on_saison(self):
 		path = self.serieModel.getCurrentSerie().get_path_to_current_season()
-                        
                 self.monitor_serie = None
-                        
                 path = gio.File(path)
                 if(path):
                         self.monitor_serie = path.monitor_directory()
@@ -389,15 +352,7 @@ class PlayEventManager:
 
 	def update_num_saison(self,widg):
 		print("saison courante num changed ?")
-		self.serieModel.getCurrentSerie().set_num_saison_courante(int(widg.get_value()))
 		path = self.serieModel.getCurrentSerie().get_path_to_current_season()
-		
-		#self.monitor_serie = None
-
-		#path = gio.File(path)
-		#if(path):
-		#	self.monitor_serie = path.monitor_directory()
-		#	self.monitor_serie.connect("changed",self.update_subs_and_file)
 		self.update_serie()
 		self.put_monitor_on_saison()
 	
@@ -421,10 +376,6 @@ class PlayEventManager:
 		val = entry.get_text() 
 		print("changed" + val )
 		self.serieModel.getCurrentSerie().set_fps(val)
-
-
-
-
 
 	def update_subtitle_file(self,widg):
 		itera=widg.get_active_iter()
@@ -519,7 +470,7 @@ class App:
 			"video_keypress": self.eventMgr.video_keypress,
 			"on_SubtitlesTreeView_row_activated": self.eventMgr.subtitle_seek ,
 			"on_Synchro_Button_pressed": self.eventMgr.subtitle_sync , 
-#			"on_SubtitlesTreeView_start_interactive_search" : self.eventMgr.started_searchi
+			#on_SubtitlesTreeView_start_interactive_search" : self.eventMgr.started_searchi
 			"on_OpenRep_clicked":self.eventMgr.open_filemanager,
 			"on_DlSub_clicked":self.eventMgr.search_subtitles
 			
@@ -544,5 +495,5 @@ class App:
 
 if __name__ == "__main__":
 	hwg = App()
-	gtk.main()
-
+	#gtk.main()
+	reactor.run()

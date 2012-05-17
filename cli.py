@@ -9,17 +9,21 @@ class FileNameError(Exception):
      def __str__(self):
          return repr(self.value)
 
+class CommandException(Exception):
+	pass	
+
 class command_executer:
         def get_output(self, cmd, working_dir=None):
-        #       print(cmd)
-        #       print("rep :",working_dir)
                 if working_dir!=None and not os.path.exists(working_dir) :
-                        raise FileNameError(working_dir)
-                p = subprocess.Popen(cmd, shell=False, bufsize=0, stdout=subprocess.PIPE, cwd=working_dir ).communicate()[0]
-        #       p = subprocess.Popen(cmd, shell=False, bufsize=0, stdout=subprocess.PIPE  ).communicate()[0]
-        #       print(type(p),":",p)
-                # p=p.decode("utf-8")
-        #       print(type(p),":",p)
+			raise FileNameError(working_dir)
+		try:
+			p = subprocess.Popen(cmd, shell=False, bufsize=0, stdout=subprocess.PIPE, cwd=working_dir ).communicate()[0]
+		except OSError as (perror,msg):
+			print "Error executing {0}".format(cmd)
+			raise
+		except child_exception: 
+			print "Error executing {0}".format(cmd)
+			raise	
                 return p
 
         def get_list_output(self,cmd,separator='\n',cwd=None):

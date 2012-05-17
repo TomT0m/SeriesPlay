@@ -1,3 +1,4 @@
+#encoding:utf-8
 #! /usr/bin/python2.6
 
 
@@ -24,13 +25,14 @@ class player:
 			command.add_option_param("-wid",unicode(vid))
 			
 		self.process = subprocess.Popen(command.get_command(), shell=False, stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
-		print(self.process.poll())
+		self.process.poll()
+		#print(self.process.poll())
 	def launch(self,video_filepath,subfile_path=None):
 		none
 
 	def send_command(self,command):
 		# self.process.stdin.flush()
-		print("sending command : \"{0}\"".format(command))
+		# print("sending command : \"{0}\"".format(command))
 		# print ("lignes lues : ",self._readlines())
 		self.process.stdin.write(command+ "\n")
 		#self.process.stdin.flush()
@@ -41,11 +43,10 @@ class player:
 		result = []
 		found = False
 		while not found :
-			print("reading lines !!")
 			result = self._readlines() 
 			for x in result :
-				print ("analysing line '{0}'".format(x))
-				print  (x.find("ANS_"))
+				# print ("analysing line '{0}'".format(x))
+				# print  (x.find("ANS_"))
 				if x.find("ANS_")==0:
 					retour = x
 					found=True
@@ -55,20 +56,20 @@ class player:
 					retour=None
 					found=True
 
-		print ("yeah !!",retour)
+		# print ("yeah !!",retour)
 		return retour
 
 	def send_command_ignoring_results(self,command):
 		self.send_command(command)
 		lines = self._readlines()
-		for x in lines :
-			print(x)
+		#for x in lines :
+			# print(x)
 
 	def get_property(self,prop):
-		print("getting property", prop)
+		# print("getting property", prop)
 		
 		result = self.send_command_with_result("get_property "+prop)
-		print("Mplayer result : '{0}'".format(result))
+		#print("Mplayer result : '{0}'".format(result))
 		if re.search("ANS_ERROR=PROPERTY_UNKNOWN", result):
 			raise PropertyUnknown("Property unknown")
 
@@ -117,10 +118,10 @@ class player:
         	while something_read :
 			fichiers_candidats= [self.process.stdout,self.process.stderr]
 			(fic_descs,_,_)=select.select([self.process.stdout.fileno(),self.process.stderr.fileno()], [], [], 0.6)
-			print("something selected ??")
+			#print("something selected ??")
 			something_read=False
             		for x in fic_descs :
-				print("looks like it in desc:{0}".format(x))
+				#print("looks like it in desc:{0}".format(x))
 				x=[ fichier for fichier in fichiers_candidats if fichier.fileno()==x ][0] 
 				ret.append(x.readline() )
 				something_read=True
