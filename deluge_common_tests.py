@@ -12,6 +12,10 @@ def set_tmp_config_dir():
     deluge.configmanager.set_config_dir(config_directory)
     return config_directory
 
+def restore_config_dir():
+    config_directory = deluge.common.get_default_config_dir()
+    deluge.configmanager.set_config_dir(config_directory)
+
 import gettext
 import locale
 import pkg_resources

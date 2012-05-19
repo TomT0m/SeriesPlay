@@ -43,8 +43,6 @@ class ConnectionException(Exception):
 
 
 class TPBMagnetFinder(torrent_finder):
-
-	
 	request_filename="div[@class='detName']/a"
 	request_magnet="a[starts-with(@href,'magnet')]"
 
@@ -82,13 +80,10 @@ class TPBMagnetFinder(torrent_finder):
 		"""
 		try:
 			h1 = httplib.HTTPConnection(self.server)
-			h1.set_debuglevel(10)
+			 #h1.set_debuglevel(10)
 			url="/search/{0}%20{1}/0/7/0".format(serie,self.get_pattern(season,ep))
-			#print url
 			h1.request("GET",url,headers={'User-Agent':"Mozilla/5.0 (X11; Linux i686; rv:10.0.4) Gecko/20100101 Firefox/10.0.4 Iceweasel/10.0.4"})
-			# print "trying to connect ..."
 			r1 = h1.getresponse()
-			# print(r1)
 		except OSError as (errno,error):
 			print "impossible de se connecter au serveur"
 			raise ConnectionException(error)
@@ -98,7 +93,6 @@ class TPBMagnetFinder(torrent_finder):
 			raise ConnectionException(er)
 		except:
 			raise ConnectionError(None)
-		import pdb
 
 		data = r1.read()
 		return data
@@ -106,27 +100,24 @@ class TPBMagnetFinder(torrent_finder):
 	def extract_table_result(self,request_html):
 		parser = etree.HTMLParser()
 		tree = etree.parse(StringIO(request_html),parser)
-
+		
 		request = "//table[@id='searchResult']"
 		table = (tree.xpath(request)[0])
 	
 		request = "//td[div[@class='detName']]"
-
 		results = map(lambda x:self.result_from_tablerow(x),table.xpath(request))
-		# map(lambda x: sys.stdout.write("{0}\n-->{1}\n".format(x.filename,x.magnet)),results)
+		
 		return results
 
 	def get_candidates(self,serie,season,ep):
 		html= self.get_search_results(serie,season,ep)
 		results =self.extract_table_result(html)
+		return results
 
+		
 	
 if __name__ == "__main__":
 	obj = TPBMagnetFinder()
-	obj.get_candidates("Dexter",6,12)
+	obj.get_candidates("Dexter",5,12)
 
 
-#	res = obj.find_magnet_for("Dexter",6,12)
-#	print resi[0].file_name
-#	res2 = obj.get_for_ep("Treme",1,1)
-#	print res2[0].file_name

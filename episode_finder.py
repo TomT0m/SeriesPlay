@@ -7,11 +7,13 @@ from twisted.internet import gtk2reactor,threads,defer
 
 import dl_manager
 import play_tpb_search
+import test_dl_manager
 
 class episode_finder(gobject.GObject):
         __gsignals__={ 
                 'candidates_found' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, ()), 
                 'file_downloaded' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, ()), 
+                'download_not_launched' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, ()),  
                 'download_launched' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, ())  
         }
 	def __init__(self,episode):
@@ -34,4 +36,24 @@ class episode_finder(gobject.GObject):
 	def _got_candidates(self,results):
 		self.candidates = results
 		return results
+
+	def on_addition_success(self,result=None):
+		print "emitting download_launched" 
+		self.emit("download_launched")
+
+	def on_addition_fail(self,error):
+		print "emitting addition_fail"
+		print(error.exception_msg)
+		self.emit("download_not_launched")
+		return error
+
+	def on_chosen_launch_dl(self,chosen):
+		adder = dl_manager.deluge_dl_adder(host="localhost") 
+
+		print "download link ?"	
+		dl_path = self.episode.serie.get_path_to_season(self.episode.num_saison)
+		print "dl_path : {}".format(dl_path)
+		print "____________"
+
+		return adder.add_magnet(chosen.magnet,dl_path).addBoth(self.on_addition_success).addBoth(adder.cleanup)
 

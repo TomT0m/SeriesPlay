@@ -3,9 +3,9 @@
 
 #from future import
 
-from deluge.ui.client import client,Client
+from deluge.ui.client import client
 from twisted.internet import gtk2reactor#as reactor
-from twisted.internet import reactor
+from twisted.internet import reactor,defer
 
 import gobject
 
@@ -25,21 +25,21 @@ class dl_adder(gobject.GObject):
 		pass
 
 class deluge_dl_adder(dl_adder):
-	def __init__(self,port=None):
+	def __init__(self,host="127.0.0.1",port=58846):
 		dl_adder.__init__(self)
 		self.port=port
+		self.host=host
 		pass
 
-	def connect(self,port=None, host="localhost"):
-		if port == None and self.port ==None:
+	def connect(self):
+		print "connect host={}, port={}".format(self.host,self.port)
+		if self.host == None:
 			self.defered_obj=client.connect()
-		elif port!=None:	
-			self.defered_obj=client.connect(host=host,port=port)
+		elif self.port != None:
+			self.defered_obj=client.connect(port=self.port,host=self.host)
 		else:
-			self.defered_obj=client.connect(port=self.port,host=host)
-		#self.defered_obj.addCallback(self.on_connect_success)
-		#self.defered_obj.addErrback(self.on_connect_fail)
-		
+			self.defered_obj = client.connect(host=self.host)
+		print "connecting request"	
 		return self.defered_obj
 		# self.defered_obj.addCallback(self.make_magnet_callback(".") )
 
@@ -63,11 +63,14 @@ class deluge_dl_adder(dl_adder):
 	def launch_command_order(self, magnet_link, dl_directory):
 		def add_magnet(res):
 			print "calling magnet callback"
-			options = {"download_location":dl_directory}
+			options = {"move_completed": True,
+				   "move_completed_path":dl_directory}
 			print "result of connection {}".format(res)
-			id =  client.core.add_torrent_magnet(magnet_link,options)
-			print (id,magnet_link,options)
-			return id
+			id_magnet = client.core.add_torrent_magnet(magnet_link,options)
+			
+			print (id_magnet,magnet_link,options)
+			return id_magnet
+
 		print ("making magnet callback")
 		return add_magnet
 
@@ -81,29 +84,35 @@ class deluge_dl_adder(dl_adder):
 		return None
 		
 	def add_magnet(self,magnet_link, dl_directory):
+		print "try adding magnet"
 		defe = self.connect()
+		deferred_launch_order = defer.Deferred()
 		def on_command_sent(result):
 			print "-->calling command sent"
-			defe.callback(result)
-		def on_error_sent(result):
-			print "--> calling command sent -->error !!!"
-		def on_connected(result):
-			print "\non connected : OK"
-			defered_command=(self.launch_command_order(magnet_link,dl_directory)(result))
-			print defered_command
-			defered_command.addCallback(on_command_sent)
-			defered_command.addErrback(on_error_sent)
-			defered_command.addErrback(self.cleanup)
-			print defered_command
-			return True #defered_command
+			deferred_launch_order.callback(result)
+			print "supposed to have triggered"
+			return True
 
-		#defe = self.connect()
-		defe.addCallback(on_connected)
-		return defe
+		def on_error_sent(result,err):
+			print "--> calling command sent -->error !!!"
+			deferred_launch_order.errback(res)
+			print(err)
+			return False
+
+		def on_connected(res):
+			print "connected"
+			order_callback = self.launch_command_order(magnet_link,dl_directory)
+			print order_callback
+			res = order_callback(res).addCallback(on_command_sent).addErrback(on_error_sent)
+			return True 
+	
+		defe.addCallback(on_connected).addErrback(deferred_launch_order.errback) 
+		return deferred_launch_order
 
 	def cleanup(self,result=None):
 		print "cleanup launched"
 		return client.disconnect()
+
 	def wait_for_cleaning(self):
 		defe=self.cleanup()
 		
@@ -114,13 +123,15 @@ class deluge_dl_adder(dl_adder):
 		print "success !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
 
 
+	
+
 if __name__=="__main__":
 	
 	magnet_link="magnet:?xt=urn:btih:038afcbf064655596d0500af2b74ebddf731bd5d&dn=Dirty+Sexy+Money+S02E07+The+Summer+House+HDTV+XviD-FQM+%5Beztv%5D&tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A80&tr=udp%3A%2F%2Ftracker.publicbt.com%3A80&tr=udp%3A%2F%2Ftracker.istole.it%3A6969&tr=udp%3A%2F%2Ftracker.ccc.de%3A80"
-	plop = deluge_dl_adder()
-	c = plop.connect(host="localhost")
+	plop = deluge_dl_adder(host="localhost")
+	c = plop.connect()
 	# c.addCallback(plop.on_connect_success).addErrback(reactor.stop).addCallback(reactor.stop)
 	c.addCallback( plop.launch_command_order(magnet_link,".") )
-	c.addCallback(lambda x: sys.out.println("cmmand launched !!")) # addCallback(reactor.stop)
+	c.addCallback(lambda x: sys.out.println("cmmand launched !!")).addCallback(reactor.stop) # addCallback(reactor.stop)
 	reactor.run()
 

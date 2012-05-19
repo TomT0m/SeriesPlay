@@ -5,13 +5,18 @@ from twisted.trial import unittest
 from twisted.internet import defer,gtk2reactor as reactor
 import gobject
 
+from twisted.python.failure import Failure
+from unittest import expectedFailure
 # reactor.install()
 
 import serie_manager
 from episode_finder import episode_finder
 
+import deluge.component as component
+from deluge.log import setupLogger
+setupLogger()
 
-
+import sys,os
 
 class OnEventDeferred(defer.Deferred,gobject.GObject):
 	def __init__(self,obj,event,*args):
@@ -20,9 +25,41 @@ class OnEventDeferred(defer.Deferred,gobject.GObject):
 		obj.connect(event,self.emited,*args)
 
 	def emited(self,*args):
+		print "OnEventDeferred : event catched"
 		self.callback(*args)
 
-#def assertEmited()
+	def err_emited(self,*args):
+		print "OnEventDeferred : err event catched"
+		self.errback(*args)
+
+	def add_error_event(self,obj,event,*args):
+		obj.connect(event,self.err_emited,*args)	
+
+
+class gobj(gobject.GObject):
+	__gsignals__={
+		'ok' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,()),
+		'error' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,())
+	}
+	def __init__(self):
+		gobject.GObject.__init__(self)
+
+
+class testOnEventDeferred(unittest.TestCase):
+	def testOK(self):
+		obj = gobj()
+		defe = OnEventDeferred(obj,"ok")
+		obj.emit("ok")
+		return defe # .maybeDeferred(defe)
+		
+#	@expectedFailure
+	def testError(self): 
+		obj = gobj()
+		defe = OnEventDeferred(obj,"ok")
+		defe.add_error_event(obj,"error")
+		obj.emit("error")
+		return defe.addCallbacks(self.fail, self.assertIsInstance, errbackArgs=(Failure,))
+
 class DummySeriesManager(serie_manager.seriesManager):
 
 	config_file_season_name=".play_conf"	
@@ -44,19 +81,19 @@ class DummySeriesManager(serie_manager.seriesManager):
 		return os.path.expanduser(self.config_file_abs_name)
 
 	def get_absolute_path(self):
-		return "_tmp"
+		return os.path.join(os.getcwd(),"_tmp")
 
 	def get_path_to_serie(self,nom):
-		return os.path.join("_tmp","nom")
+		return os.path.join(os.getcwd(),"_tmp",nom)
 
 	def get_path_to_current_season(self):
 		return os.path.join(self.get_path_to_serie(),"saison6")
 
 	def get_path_to_current_season_of_serie(self,name):
-		return "_tmp/Dexter/saison6"
+		return os.path.join(self.get_absolute_path(),"Dexter","saison6")
 	
 	def get_path_to_season(self,nom,numsaison):
-		return "_tmp/Dexter/saison6"
+		return os.path.join(self.get_absolute_path(),"Dexter","saison6")
 
 	
 # config management 
@@ -128,7 +165,13 @@ class testDownloadOnRep(unittest.TestCase):
 		
 		self.serie = serie_manager.bashManagedSerie("Dexter",self.serie_manager)
 		self.episode = serie_manager.bashManagedEpisode(self.serie,5,1)
-		pass
+		d = component.start()
+		defer.gatherResults([d])
+		try:
+			os.makedirs(os.path.join(self.serie.get_path_to_serie(),'saison6'))
+		except Exception:
+			pass 
+		return 
 
 	def test_search(self):
 		def print_results(results):
@@ -138,14 +181,31 @@ class testDownloadOnRep(unittest.TestCase):
 		return ep_finder.search_newep(self.episode).addCallback(print_results)
 
 
-
 	def test_search_for_ep(self):
 		def print_results(results):
 			print("Résultats {}".format(len(results)))
-
 		ep_finder = episode_finder(self.episode)
 		ep_find = ep_finder.search_newep(self.episode).addCallback(print_results)
 		test = OnEventDeferred(ep_finder,"candidates_found")
 		#defe = ep_find.search_newep(self.episode)
 		return test.addCallback(self.assertTrue)
 
+	def test_search_and_choose(self):
+		ep_finder = episode_finder(self.episode)
+		def print_results(results):
+			print("Résultats {}".format(len(results)))
+		def catch_err(res):
+			print "err catched {}".format(res)
+		def choose(res):
+			print ep_finder.candidates[0]
+			ep_finder.on_chosen_launch_dl(ep_finder.candidates[0])
+			print "dl_launched ?" 
+			return True
+
+		final_test = OnEventDeferred(ep_finder,"download_launched")
+		final_test.add_error_event(ep_finder,"download_not_launched")
+
+		candidates_found = OnEventDeferred(ep_finder,"candidates_found").addCallback(choose).addErrback(catch_err)
+		ep_find = ep_finder.search_newep(self.episode).addCallback(print_results)
+		
+		return final_test.addBoth(catch_err) # .addCallback(plop)#candidates_found.addCallback(final_test)# first_step.addCallback(final_test)

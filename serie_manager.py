@@ -184,6 +184,7 @@ class bashManagedEpisode(episode):
 		self.skiptime=None
 		self.decaytime=None
 	
+
 class Serie: 
 	def __init__(self,nom):
 		self.nom=nom
@@ -291,6 +292,9 @@ class bashManagedSerie(Serie):
 		else:
 			return 1
 
+	def get_next_episode(self):
+		return bashManagedEpisode(self,self.get_num_derniere_saison_vue(),self.get_num_prochain_episode())
+
 
 	def get_num_dernier_episode_vu_in_season(self,num_saison):
 		num=self.manager.get_current_episode(self.nom,num_saison)
@@ -345,6 +349,12 @@ class bashManagedSerie(Serie):
 	def get_path_to_current_season(self):
 		return self.manager.get_path_to_season(self.nom,self.num_saison)
 
+	def get_path_to_season(self,season):
+		return self.manager.get_path_to_season(self.nom,season)
+
+	#def get_path_to_season(self,episode):
+	#	return 
+
 	def get_subtitle_list(self):
 		return self.manager.get_subtitle_candidates(self.nom,self.num_saison,self.num_episode)
 
@@ -396,9 +406,11 @@ class SeriesData(object):
 		print("pappy adding serie")
 	
 class bashManagedSeriesData(SeriesData):
-	def __init__(self,manager,serieFactory):
+	def __init__(self,manager,serieFactory=None):
 		self.manager=manager
 		self.serieFactory=serieFactory
+		if not self.serieFactory:
+			self.serieFactory = bashManagedSerieFactory(manager)
 		
 		liste = manager.get_serie_list()
 		super(type(self),self).__init__(manager.get_current_serie(), liste)
