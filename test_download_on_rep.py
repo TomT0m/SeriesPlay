@@ -3,7 +3,7 @@
 
 from twisted.trial import unittest
 from twisted.internet import defer,gtk2reactor as reactor
-import gobject
+from gi.repository import GObject
 
 from twisted.python.failure import Failure
 from unittest import expectedFailure
@@ -18,10 +18,10 @@ setupLogger()
 
 import sys,os
 
-class OnEventDeferred(defer.Deferred,gobject.GObject):
+class OnEventDeferred(defer.Deferred,GObject.GObject):
 	def __init__(self,obj,event,*args):
 		defer.Deferred.__init__(self)
-		gobject.GObject.__init__(self)
+		GObject.GObject.__init__(self)
 		obj.connect(event,self.emited,*args)
 
 	def emited(self,*args):
@@ -36,13 +36,13 @@ class OnEventDeferred(defer.Deferred,gobject.GObject):
 		obj.connect(event,self.err_emited,*args)	
 
 
-class gobj(gobject.GObject):
+class gobj(GObject.GObject):
 	__gsignals__={
-		'ok' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,()),
-		'error' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,())
+		'ok' : (GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE,()),
+		'error' : (GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE,())
 	}
 	def __init__(self):
-		gobject.GObject.__init__(self)
+		GObject.GObject.__init__(self)
 
 
 class testOnEventDeferred(unittest.TestCase):
@@ -152,9 +152,9 @@ class DummySeriesManager(serie_manager.seriesManager):
 
 class testDownloadOnRep(unittest.TestCase):
 	__gsignals__={
-		'candidates_found' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, ()),
-		'file_downloaded' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, ()),
-		'download_launched' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, ())
+		'candidates_found' : (GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE, ()),
+		'file_downloaded' : (GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE, ()),
+		'download_launched' : (GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE, ())
 	}
 			
 	def setUp(self):

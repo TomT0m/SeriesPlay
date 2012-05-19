@@ -2,22 +2,22 @@
 #encoding:utf-8
 
 
-import gobject
+from gi.repository import GObject
 from twisted.internet import gtk2reactor,threads,defer
 
 import dl_manager
 import play_tpb_search
 import test_dl_manager
 
-class episode_finder(gobject.GObject):
+class episode_finder(GObject.GObject):
         __gsignals__={ 
-                'candidates_found' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, ()), 
-                'file_downloaded' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, ()), 
-                'download_not_launched' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, ()),  
-                'download_launched' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, ())  
+                'candidates_found' : (GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE, ()), 
+                'file_downloaded' : (GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE, ()), 
+                'download_not_launched' : (GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE, ()),  
+                'download_launched' : (GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE, ())  
         }
 	def __init__(self,episode):
-		gobject.GObject.__init__(self)
+		GObject.GObject.__init__(self)
 		self.episode = episode
 
 	def search_newep(self,ep):

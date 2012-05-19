@@ -1,10 +1,7 @@
 # encoding : utf-8
 
-# import pygtk
-import gobject
-import pygtk
-pygtk.require('2.0')
-import gobject
+from gi.repository import Gtk
+from gi.repository import GObject
 import time 
 
 from decorator import decorator
@@ -13,7 +10,6 @@ import mplayer_slave
 
 def command_sender(func):
         def wrapper(*args,**kwargs):
-                #print("sending ... command {0}".format(func.__name__))
 		try:
 			#print(func)
 			#print(args)
@@ -28,17 +24,17 @@ def command_sender(func):
 
 
 
-class Player_status(gobject.GObject):
+class Player_status(GObject.GObject):
 	__gproperties__ = { 
-		'playing' : (	gobject.TYPE_BOOLEAN,                        # type
+		'playing' : (	GObject.TYPE_BOOLEAN,                        # type
 				'playing status',                         # nick name
 				'true if currently playing', # description
 				False,                                        # default value
-				gobject.PARAM_READWRITE)                   # flags
+				GObject.PARAM_READWRITE)                   # flags
 	}
 	__gsignals__ = {
-		'player_restarted' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, ()),
-		'play_ended' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, ())
+		'player_restarted' : (GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE, ()),
+		'play_ended' : (GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE, ())
 	}
 	# gsignal('engine-started', float)
 
@@ -54,7 +50,7 @@ class Player_status(gobject.GObject):
 
 	def __init__(self,player=None):
 		self.num_check=0
-		gobject.GObject.__init__(self)
+		GObject.GObject.__init__(self)
 		print("creating the slave mplayer")
 		if player==None:
 			self.player=mplayer_slave.player()
@@ -62,7 +58,7 @@ class Player_status(gobject.GObject):
 			self.player=player
 		self.playing=False
 		self.pause = False
-		self.gstatusupdater=gobject.timeout_add_seconds(2, self.update_status)
+		self.gstatusupdater=GObject.timeout_add_seconds(2, self.update_status)
 		
 	def do_get_property(self, property):
 		if property.name == 'fuel':
@@ -137,6 +133,5 @@ class Player_status(gobject.GObject):
 	#	except IOError:
 	#		self.emit('play_ended')
 
-gobject.type_register(Player_status)
-
+# GObject.type_register(Player_status)
 

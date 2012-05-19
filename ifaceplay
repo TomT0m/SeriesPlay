@@ -10,25 +10,28 @@ import threading
 
 path_to="./ui"
 
-# gtk and twisted imports
+# Gtk and twisted imports
 
-try:
-	import pygtk
-	pygtk.require("2.0")
-except:
-	print("pas gtk")
-try:
-	import gtk
-	import gobject
-	import gio
-	from twisted.internet import gtk2reactor
-	gtk2reactor.install()
-	from twisted.internet import reactor 
+#try:
+#	import pyGtk
+#	pyGtk.require("2.0")
+#except:
+#	print("pas Gtk")
+#try:
+	# import Gio
 
-except:
-	sys.exit(1)
+#except:
 
-gtk.gdk.threads_init()
+from gi.repository import GObject
+from gi.repository import Gtk
+from gi.repository import Gio
+# from twisted.internet import glib2reactor
+# glib2reactor.install()
+import gireactor
+gireactor.install(useGtk=True)
+from twisted.internet import reactor 
+
+# Gtk.gdk.threads_init()
 # external libs
 from pysrt import SubRipFile, SubRipItem, SubRipTime
 
@@ -54,7 +57,7 @@ class subtitles_store:
 	def __init__(self,filename):
 		self.filename=filename
 			
-		self.model=gtk.ListStore(object,str)
+		self.model=Gtk.ListStore(object,str)
 		self.srtModel=[]
 		if not os.path.exists(filename) :
 			raise(FileNameError(filename))
@@ -108,7 +111,7 @@ class PlayEventManager:
 		
 	def update_subs_and_file(self,monitor,fichier,data,event):
 		print("nouveau sub / vidéo ?")
-		if ( event == gio.FILE_MONITOR_EVENT_CREATED ):
+		if ( event == Gio.FileMonitorEvent.CREATED ):
 			self.update_serie()
 
 	def open_filemanager(self,widg):
@@ -127,22 +130,24 @@ class PlayEventManager:
 		self.serieModel=serieModel
 		self.update_serie()
 
+		#import pdb; pdb.set_trace()	
 		print("Setting up file monitoring ... ")
 		nomfic=serieModel.get_base_path()
-		fichier = gio.File(nomfic)
+		fichier = Gio.File.new_for_path(nomfic)
 		if(fichier):
 			print(fichier)
-			self.monitor = fichier.monitor_directory()
+			#import pdb ; pdb.set_trace()
+			self.monitor = fichier.monitor_directory(Gio.FileMonitorFlags.NONE,None)
 			self.monitor.connect("changed",self.update_serie_list)
-		
+		#import pdb; pdb.set_trace()	
 		self.player_status = Player_status()
-		cellpb = gtk.CellRendererText()
+		cellpb = Gtk.CellRendererText()
 
-		cellpbtext = gtk.CellRendererText()
-		time=gtk.TreeViewColumn("Début",cellpb)
+		cellpbtext = Gtk.CellRendererText()
+		time=Gtk.TreeViewColumn("Début",cellpb)
 		time.set_cell_data_func(cellpb,self.subtitle_begin_time_getter)
 
-		column=gtk.TreeViewColumn("Sous-Titre",cellpbtext,text=1)
+		column=Gtk.TreeViewColumn("Sous-Titre",cellpbtext,text=1)
 
 		column.set_cell_data_func(cellpbtext,self.subtitle_line_text_getter)
 
@@ -156,8 +161,8 @@ class PlayEventManager:
 		print("enable_search : " , treeview.get_enable_search())
 
 		print("nbcols ",len(treeview.get_columns()))
-
-		self.iface.getitem("SubtitlesTreeView").set_search_equal_func(self.subtitle_comparison_function)
+		
+		self.iface.getitem("SubtitlesTreeView").set_search_equal_func(self.subtitle_comparison_function,"")
 		# self.MPlayer=mplayer_slave.player(self.iface.getitem("VideoZone").window.xid)
 		# self.MPlayer=mplayer_slave.player(None) # self.iface.getitem("VideoZone").window.xid)
 		# print ("XID :",self.iface.getitem("VideoZone").window.xid)
@@ -184,14 +189,13 @@ class PlayEventManager:
 		
 	def execute_play_command(self,cmd,cwd=None):
 		print(cmd)
-
 		print("launching")
 		process = subprocess.Popen(cmd, shell=False, bufsize=0, stdout=subprocess.PIPE,cwd=cwd)
 		self.currentProcess=process.stdout
 		print("launched")
 		self.playing()
-		self.handle_file = gobject.io_add_watch(self.currentProcess,gobject.IO_HUP,self.end_of_play,priority=gobject.PRIORITY_DEFAULT_IDLE)
-		self.handle_end = gobject.io_add_watch(self.currentProcess,gobject.IO_IN,self.read,priority=gobject.PRIORITY_DEFAULT_IDLE)
+		self.handle_file = GObject.io_add_watch(self.currentProcess,GObject.IO_HUP,self.end_of_play,priority=GObject.PRIORITY_DEFAULT_IDLE)
+		self.handle_end = GObject.io_add_watch(self.currentProcess,GObject.IO_IN,self.read,priority=GObject.PRIORITY_DEFAULT_IDLE)
 		self.currentProcess=process
 
 	def read(self, widg, condition):
@@ -233,8 +237,8 @@ class PlayEventManager:
 		if not self.iface.getitem("SetupModeCheck").get_active():
 			self.serieModel.getCurrentSerie().episode_vu()
 			self.update_serie()
-                gobject.source_remove(self.handle_file)
-                gobject.source_remove(self.handle_end)
+                GObject.source_remove(self.handle_file)
+                GObject.source_remove(self.handle_end)
 		return False	
 
 	def end_of_play_internal(self,obj):
@@ -264,7 +268,7 @@ class PlayEventManager:
 			drawing_area.set_size_request(width, height)
 			gdkwindow = drawing_area.window
 			print("trying to go fullscreen ...")
-			new_window = gtk.Window(gtk.WINDOW_TOPLEVEL)
+			new_window = Gtk.Window(Gtk.WINDOW_TOPLEVEL)
 			#new_window.fullscreen()
 			#drawing_area.set_parent_window(new_window.get_parent_window())
 			# self.player_status=Player_status(self.MPlayer)
@@ -333,6 +337,8 @@ class PlayEventManager:
 		vid_list=serie.get_video_list()
 		if len(vid_list) > 0 :
 			self.iface.getitem("NomficLabel").set_text(serie.get_video_list()[0])
+		else:
+			self.iface.getitem('')
 		self.update_subs()
 
 	def selected_serie_changed(self,widg):
@@ -345,9 +351,9 @@ class PlayEventManager:
 	def put_monitor_on_saison(self):
 		path = self.serieModel.getCurrentSerie().get_path_to_current_season()
                 self.monitor_serie = None
-                path = gio.File(path)
+                path = Gio.File.new_for_path(path)
                 if(path):
-                        self.monitor_serie = path.monitor_directory()
+                        self.monitor_serie = path.monitor_directory(Gio.FileMonitorFlags.NONE,None)
                         self.monitor_serie.connect("changed",self.update_subs_and_file)
 
 	def update_num_saison(self,widg):
@@ -397,10 +403,10 @@ class PlayEventManager:
 			ls=combo.get_model()
 			ls.clear()
 		else:
-			ls=gtk.ListStore(str)
-			cellr = gtk.CellRendererText()
+			ls=Gtk.ListStore(str)
+			cellr = Gtk.CellRendererText()
 			combo.set_model(ls)	
-			combo.pack_start(cellr)
+			combo.pack_start(cellr,True)
 			combo.add_attribute(cellr, 'text', 0)
 			combo.set_active(0)
 		
@@ -413,7 +419,7 @@ class PlayEventManager:
 
 	def end(self,widg):
 		self.player_status.end_player()
-		gtk.main_quit(widg)
+		Gtk.main_quit(widg)
 
 	def video_keypress(self,widgi,event):
 		print(event.hardware_keycode)
@@ -430,10 +436,10 @@ class App:
 		#Set the Glade file
 		#self.gladefile = path_to + "IfacePlay.glade"  
 		self.gladefile = os.path.join(path_to,"IfacePlay.ui")
-		builder = gtk.Builder()
+		builder = Gtk.Builder()
 		builder.add_from_file(self.gladefile)
 
-		#self.wTree = gtk.glade.XML(self.gladefile) 
+		#self.wTree = Gtk.glade.XML(self.gladefile) 
 		self.wTree = builder # .get_object(MainWindow") 
 		
 		self.bashmanager = seriesManager()
@@ -460,7 +466,7 @@ class App:
 			"on_SlaveMplayerPlay_clicked" : self.eventMgr.play_with_sub,
 			"on_PromptedPlay_clicked" : self.eventMgr.prompted_play,
 			"on_SerieListCombo_changed" : self.eventMgr.selected_serie_changed,
-			"on_MainWindow_destroy" : gtk.main_quit,
+			"on_MainWindow_destroy" : Gtk.main_quit,
 			"on_numSaisonSpin_value_changed" : self.eventMgr.update_num_saison,
 			"on_numEpSpin_value_changed" : self.eventMgr.update_num_episode,
 			"on_skipTimeSpin_value_changed" : self.eventMgr.update_skip_time,
@@ -495,5 +501,5 @@ class App:
 
 if __name__ == "__main__":
 	hwg = App()
-	#gtk.main()
+	#Gtk.main()
 	reactor.run()

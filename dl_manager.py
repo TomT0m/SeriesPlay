@@ -7,21 +7,21 @@ from deluge.ui.client import client
 from twisted.internet import gtk2reactor#as reactor
 from twisted.internet import reactor,defer
 
-import gobject
+from gi.repository import GObject
 
 from deluge.log import setupLogger
 setupLogger()
 
 
-class dl_adder(gobject.GObject):
+class dl_adder(GObject.GObject):
 	__gsignals__= {
-		'connected':(gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,()),
-		'connect-fail':(gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,()),
-		'torrent-added':(gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,())
+		'connected':(GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE,()),
+		'connect-fail':(GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE,()),
+		'torrent-added':(GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE,())
 	}
 	def add_magnet(self,magnet,destination):
-		gobject.Gobject.__init__(self)
-		gobject.signal_new("connected",dl_adder)
+		GObject.Gobject.__init__(self)
+		GObject.signal_new("connected",dl_adder)
 		pass
 
 class deluge_dl_adder(dl_adder):
