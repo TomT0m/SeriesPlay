@@ -9,7 +9,7 @@ import twisted.internet.protocol as protocol
 from twisted.protocols.basic import NetstringReceiver
 from twisted.internet.endpoints import *
 
-from messages import message_encoder
+from utils.messages import message_encoder
 
 
 

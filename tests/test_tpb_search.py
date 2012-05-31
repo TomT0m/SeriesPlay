@@ -1,7 +1,7 @@
 #encoding:utf-8
 
 import unittest
-from play_tpb_search import *
+from datasource.play_tpb_search import *
 
 sample_html="""
 <!DOCTYPE html PUBLIC "-W3CDTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">

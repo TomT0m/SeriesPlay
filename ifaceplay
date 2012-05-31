@@ -25,12 +25,16 @@ path_to="./ui"
 from gi.repository import GObject
 from gi.repository import Gtk
 from gi.repository import Gio
-# from twisted.internet import glib2reactor
-# glib2reactor.install()
-import gireactor
-gireactor.install(useGtk=True)
-from twisted.internet import reactor 
 
+# import gi.pygtkcompat
+# gi.pygtkcompat.enable_gtk(version='3.0')
+
+from twisted.internet import gireactor
+gireactor.install(useGtk=True)
+from twisted.internet import reactor
+
+# from twisted.internet import reactor 
+# gireactor.install(useGtk=True)
 # Gtk.gdk.threads_init()
 # external libs
 from pysrt import SubRipFile, SubRipItem, SubRipTime
@@ -38,16 +42,18 @@ from pysrt import SubRipFile, SubRipItem, SubRipTime
 #internal imports
 
 from gobj_player import *
-from play_subdl import TVsubtitlesSubdownloader as subdownloader_subdownloader 
-
-import cli
+from datasource.play_subdl import TVsubtitlesSubdownloader as subdownloader_subdownloader 
+from datasource.video_finder_client import network_episode_video_finder as episode_video_finder
+ 
+import utils.cli
 import mplayer_slave
+
 import re
 import trace
 
-from cli import command_executer, command_line_generator, config_manager
+from utils.cli import command_executer, command_line_generator, config_manager
 
-from serie_manager import seriesManager, bashManagedEpisode, bashManagedSerie, bashManagedSeriesData, bashManagedSerieFactory
+from serie_manager import seriesManager, bashManagedEpisode, bashManagedSerie, bashManagedSeriesData, bashManagedSerieFactory, episode
 
 
 class subtitles_store:
@@ -78,6 +84,23 @@ class subtitles_store:
 		for line in self.srtModel:
 			# print("appending",line)
 			self.model.append([line,line.text])
+
+	def get_model(self):
+		return self.model
+
+class video_result_store(object):
+	"""GTK store for video candidates results
+	"""
+	def __init__(self,candidates,model = None):
+		self.candidates = candidates
+		if not model:
+			self.model=Gtk.ListStore(object,str)
+		else:
+			self.model = model
+
+		for candidate in candidates:
+			print "appending res to model"
+			self.model.append([candidate,candidate.filename])
 
 	def get_model(self):
 		return self.model
@@ -121,6 +144,19 @@ class PlayEventManager:
 		command_gen.add_option_single(rep)
 		command_launch.get_output(command_gen.get_command())
 
+	def init_video_finder(self):
+		cellpb = Gtk.CellRendererText()
+		cellpbtext = Gtk.CellRendererText()
+		filename=Gtk.TreeViewColumn("Début",cellpb)
+
+		def filename_text_getter(column,cell,model,iter,unknown = None):
+			print 'getter called'
+			import pdb ; pdb.set_trace()
+			cell.set_property('text', model.get_value(iter, 0).filename)
+
+		filename.set_cell_data_func(cellpbtext,filename_text_getter)
+		self.iface.getitem("TorrentList").append_column(filename)
+
 	def __init__(self, iface,serieModel):
 		self.iface=iface
 		self.currentProcess=None
@@ -128,7 +164,7 @@ class PlayEventManager:
 		print ("creating event man")
 		self.playButtons=["Play","SlaveMplayerPlay","DlSub","OpenRep"]
 		self.serieModel=serieModel
-		self.update_serie()
+		# self.update_serie()
 
 		#import pdb; pdb.set_trace()	
 		print("Setting up file monitoring ... ")
@@ -136,13 +172,14 @@ class PlayEventManager:
 		fichier = Gio.File.new_for_path(nomfic)
 		if(fichier):
 			print(fichier)
-			#import pdb ; pdb.set_trace()
 			self.monitor = fichier.monitor_directory(Gio.FileMonitorFlags.NONE,None)
 			self.monitor.connect("changed",self.update_serie_list)
-		#import pdb; pdb.set_trace()	
+		
 		self.player_status = Player_status()
-		cellpb = Gtk.CellRendererText()
 
+
+		## subtitle view init
+		cellpb = Gtk.CellRendererText()
 		cellpbtext = Gtk.CellRendererText()
 		time=Gtk.TreeViewColumn("Début",cellpb)
 		time.set_cell_data_func(cellpb,self.subtitle_begin_time_getter)
@@ -154,22 +191,23 @@ class PlayEventManager:
 		treeview = self.iface.getitem("SubtitlesTreeView")
 		self.iface.getitem("SubtitlesTreeView").append_column(time)
 		num_trad_column = self.iface.getitem("SubtitlesTreeView").append_column(column)
-		self.iface.getitem("SubtitlesTreeView").set_enable_search(True)
-		print("search column : " , num_trad_column)
-		self.iface.getitem("SubtitlesTreeView").set_search_column(1) # num_trad_column-1)
-		
-		print("enable_search : " , treeview.get_enable_search())
 
-		print("nbcols ",len(treeview.get_columns()))
-		
+		self.iface.getitem("SubtitlesTreeView").set_enable_search(True)
+		self.iface.getitem("SubtitlesTreeView").set_search_column(1) # num_trad_column-1)
 		self.iface.getitem("SubtitlesTreeView").set_search_equal_func(self.subtitle_comparison_function,"")
+
+		# init of video finder window
+		self.init_video_finder()
+		
+		## MPlayer subwindow		
+
 		# self.MPlayer=mplayer_slave.player(self.iface.getitem("VideoZone").window.xid)
 		# self.MPlayer=mplayer_slave.player(None) # self.iface.getitem("VideoZone").window.xid)
 		# print ("XID :",self.iface.getitem("VideoZone").window.xid)
 		# self.payer_status=None
 		# CellRenderer
 
-	def subtitle_comparison_function(self,model,column,key,iter):
+	def subtitle_comparison_function(self,model,column,key,iter,unknown = None):
 		text=model.get_value(iter, 0).text.lower()
 		# print("searching")
 		if(re.match(r".*"+key,text,re.IGNORECASE)):
@@ -179,11 +217,11 @@ class PlayEventManager:
 	def started_search(self,treeview):
 		print ("search started")
 		
-	def subtitle_line_text_getter(self,column,cell,model,iter):
+	def subtitle_line_text_getter(self,column,cell,model,iter,unknown = None):
 		cell.set_property('text', model.get_value(iter, 0).text)
 		return 	
  
-	def subtitle_begin_time_getter(self,column,cell,model,iter):
+	def subtitle_begin_time_getter(self,column,cell,model,iter,unknown = None):
 		cell.set_property('text', unicode(model.get_value(iter, 0).start))
 		return
 		
@@ -310,7 +348,7 @@ class PlayEventManager:
 		sub_delay = self.player_status.get_subtitles_delay()
 		delay = time - in_video_time
 		print("time =",time,"in vid =",in_video_time, "sub_delay",sub_delay)
-		self.player_status.set_subtitles_delay(delay)
+		elf.player_status.set_subtitles_delay(delay)
 	
 	def playing(self):
 		map(lambda nom: 
@@ -318,6 +356,9 @@ class PlayEventManager:
 		return ( self.currentProcess == None )
 	
 	def update_serie(self):
+		#if not self.numseason:
+		#	self.numseason=None
+
 		serie=(self.serieModel.getCurrentSerie())
 		newsaison=int(serie.get_num_saison_courante())
 		num = serie.get_num_episode_courant()
@@ -325,21 +366,50 @@ class PlayEventManager:
 			newep=int(serie.get_num_episode_courant())
 		else:
 			newep=1
-		print("updating serie ",newsaison," ",newep)
-		self.iface.getitem("numSaisonSpin").get_adjustment().set_value(newsaison)
-		self.iface.getitem("numSaisonSpin").update()
+		spin = self.iface.getitem("numSaisonSpin")
+		spin.set_value(newsaison)
+
 		self.iface.getitem("numEpSpin").set_value(newep)
-		print ("skip_time:" ,serie.get_skip_time())
 		self.iface.getitem("skipTimeSpin").set_value(serie.get_skip_time())
-		print ("decay_time:" ,serie.get_decay_time())
 		self.iface.getitem("decayTimeSpin").set_value(serie.get_decay_time())
 		# self.iface.getitem("FPSComboBox").get_child().set_text(serie.get_fps())
 		vid_list=serie.get_video_list()
-		if len(vid_list) > 0 :
+		print "Videos !!! nb:{}".format(len(vid_list))
+		print vid_list
+		if len (vid_list) > 0 and not (len(vid_list) == 1 and vid_list[0] == '' ) :
 			self.iface.getitem("NomficLabel").set_text(serie.get_video_list()[0])
 		else:
 			self.iface.getitem('')
+			ep = episode(serie,newsaison,num)
+			self.add_video_finder(ep)
 		self.update_subs()
+	# def load_season(num_season):
+		
+	# def load_ep(num_ep)
+	def add_video_finder(self,ep):
+		print "adding video finder ..."
+		finder = episode_video_finder(ep)
+		window = self.iface.getitem("VideoSearchResultWindow")
+		candidates_view = self.iface.getitem("TorrentList")
+ 
+		# finder.plop = False
+		def on_candidates_found(self):
+			# print "candidates_found_called"
+			print "presenting window"
+			candidates = finder.candidates
+			store = video_result_store(candidates)
+			print candidates_view
+			# candidates_view = self.iface.getitem("TorrentList")
+			candidates_view.set_model(store.get_model())
+			print "..."
+			print window
+			import pdb ; pdb.set_trace()
+			window.present()
+			print "!"
+			# print window
+		finder.connect("candidates_found",on_candidates_found)
+		finder.search_newep(ep)
+		print "added"
 
 	def selected_serie_changed(self,widg):
 		itera=widg.get_active_iter()
@@ -358,6 +428,7 @@ class PlayEventManager:
 
 	def update_num_saison(self,widg):
 		print("saison courante num changed ?")
+		self.serieModel.getCurrentSerie().set_num_saison_courante(int(widg.get_value()))
 		path = self.serieModel.getCurrentSerie().get_path_to_current_season()
 		self.update_serie()
 		self.put_monitor_on_saison()
@@ -392,8 +463,12 @@ class PlayEventManager:
 			absolute_subfile=os.path.join(self.serieModel.getCurrentSerie().get_path_to_current_season(),val)
 			self.subtitle_file_model=subtitles_store(absolute_subfile)
 			self.iface.getitem("SubtitlesTreeView").set_model(self.subtitle_file_model.get_model())
+
 	def update_subs(self):
 		liste=self.serieModel.getCurrentSerie().get_subtitle_list()
+		print("Subs !! nb:{}".format(len(liste)))
+		if len(liste)== 1 and liste[0]=='':
+			self.search_subtitles(None)
 		self.populate_combo_with_items(self.iface.getitem("CandidateSubsCombo"),liste)
 		self.update_subtitle_file(self.iface.getitem("CandidateSubsCombo"))		
 
@@ -476,7 +551,7 @@ class App:
 			"video_keypress": self.eventMgr.video_keypress,
 			"on_SubtitlesTreeView_row_activated": self.eventMgr.subtitle_seek ,
 			"on_Synchro_Button_pressed": self.eventMgr.subtitle_sync , 
-			#on_SubtitlesTreeView_start_interactive_search" : self.eventMgr.started_searchi
+			"on_SubtitlesTreeView_start_interactive_search" : self.eventMgr.started_search,
 			"on_OpenRep_clicked":self.eventMgr.open_filemanager,
 			"on_DlSub_clicked":self.eventMgr.search_subtitles
 			
@@ -492,8 +567,6 @@ class App:
 			self.window.connect("destroy", self.eventMgr.end )
 		else:
 			print ("Pas trouvé")
-
-		
 
 	def getitem(self, key):
         	#return self.wTree.get_widget(key)

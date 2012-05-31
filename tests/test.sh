@@ -1,6 +1,14 @@
-#! /bin/sh 
+#! /bin/bash 
 
 export PATH="$PATH:./bash"
-#python -m unittest discover
-trial -r gtk2 test*.py
 
+cd ..
+
+#python -m unittest discover
+#echo $# ; exit
+
+if [ "$#" == "0" ] ; then
+	trial -r gi tests/test*.py
+else
+	trial -r gi $@
+fi

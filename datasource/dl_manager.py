@@ -3,11 +3,14 @@
 
 #from future import
 
-from deluge.ui.client import client
-from twisted.internet import gtk2reactor#as reactor
-from twisted.internet import reactor,defer
-
 from gi.repository import GObject
+import gi.pygtkcompat
+
+gi.pygtkcompat.enable()
+
+from deluge.ui.client import client
+# from twisted.internet import gtk2reactor#as reactor
+from twisted.internet import reactor,defer
 
 from deluge.log import setupLogger
 setupLogger()
@@ -121,7 +124,6 @@ class deluge_dl_adder(dl_adder):
 		#defered_added_result.addCallback()
 		#cal
 		print "success !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-
 
 	
 

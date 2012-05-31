@@ -1,6 +1,6 @@
 #! /usr/bin/python
 
-from cli import command_executer, command_line_generator, config_manager, FileNameError
+from utils.cli import command_executer, command_line_generator, config_manager, FileNameError
 
 from trace import trace
 

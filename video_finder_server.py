@@ -6,7 +6,7 @@ from twisted.internet.endpoints import TCP4ServerEndpoint
 from twisted.internet import reactor
 
 
-from episode_video_finder import EpisodeFinderServer,EpisodeFinderServerFactory
+from datasource.episode_video_finder import EpisodeFinderServer,EpisodeFinderServerFactory
 
 
 endpoint = TCP4ServerEndpoint(reactor,8010)

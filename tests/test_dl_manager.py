@@ -1,14 +1,13 @@
 #! /usr/bin/python
 #encoding:utf-8
 
-from dl_manager import *
+from datasource.dl_manager import *
 from twisted.trial import unittest # ,unittest.skip
 
 # from unittest import skip # twisted.trial import unittest
 
-from deluge.ui.client import client
-from twisted.internet import gtk2reactor#as reactor
 from twisted.internet import reactor,defer
+from deluge.ui.client import client
 
 # for the fake RCPServer
 import deluge.core.rpcserver
@@ -19,7 +18,7 @@ import deluge.component as component
 import deluge.error
 import sys
 # file extracted from deluge http://git.deluge-torrent.org/deluge/tree/tests/common.py?h=deluge-1.3.5
-import deluge_common_tests as common 
+import tests.deluge_common_tests as common 
 
 magnet_link="magnet:?xt=urn:btih:038afcbf064655596d0500af2b74ebddf731bd5d&dn=Dirty+Sexy+Money+S02E07+The+Summer+House+HDTV+XviD-FQM+%5Beztv%5D&tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A80&tr=udp%3A%2F%2Ftracker.publicbt.com%3A80&tr=udp%3A%2F%2Ftracker.istole.it%3A6969&tr=udp%3A%2F%2Ftracker.ccc.de%3A80"
 

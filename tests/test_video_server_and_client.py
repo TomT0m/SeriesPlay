@@ -7,9 +7,11 @@ twisted.internet.base.DelayedCall.debug = True
 from twisted.trial import unittest 
 import twisted.internet.protocol as protocol
 from twisted.internet import reactor
-from video_finder_client import *
-import common_test,on_event_deferred
 from twisted.internet.endpoints import *
+
+from datasource.video_finder_client import *
+import tests.common_test
+from utils.on_event_deferred import *
 
 class ServProcessProtocol(protocol.ProcessProtocol):
 	def __init__(self,defer):
@@ -32,7 +34,7 @@ class testServer(unittest.TestCase):
 		#self.serv_protocol = ServProcessProtocol(deferr)
 		# reactor.spawnProcess(self.serv_protocol,"./video_finder_server.py",["./video_finder_server.py"])
 		# subprocess.Popen("./video_finder_server")
-		(self.serie,self.episode) = common_test.get_serie_and_ep()
+		(self.serie,self.episode) = tests.common_test.get_serie_and_ep()
 		#return deferr
 		pass
 	def tearDown(self):
@@ -124,7 +126,7 @@ class testServer(unittest.TestCase):
 		finder = network_episode_video_finder(self.episode)
 		finder.search_newep(self.episode)
 		self.res = None
-		founded = on_event_deferred.OnEventDeferred(finder, "candidates_found").addCallback(self.set_candidates)
+		founded = OnEventDeferred(finder, "candidates_found").addCallback(self.set_candidates)
 		def choose(res):
 			return finder.candidates[0]
 		def launch(choice):
@@ -148,10 +150,10 @@ class testServer(unittest.TestCase):
 			print "dl_launched ?" 
 			return True
 
-		final_test = on_event_deferred.OnEventDeferred(ep_finder,"download_launched")
+		final_test = OnEventDeferred(ep_finder,"download_launched")
 		final_test.add_error_event(ep_finder,"download_not_launched")
 
-		candidates_found = on_event_deferred.OnEventDeferred(ep_finder,"candidates_found").addCallback(choose).addErrback(catch_err)
+		candidates_found = OnEventDeferred(ep_finder,"candidates_found").addCallback(choose).addErrback(catch_err)
 		
 		ep_find = ep_finder.search_newep(self.episode).addCallback(print_results)
 		print "budou"	

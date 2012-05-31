@@ -27,7 +27,7 @@ import sys
 
 class result(object):
 	def __init__(self,html):
-		self.html=html
+		#self.html=html
 		self.filename=None
 		self.magnet=None
 

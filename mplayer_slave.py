@@ -2,7 +2,7 @@
 #! /usr/bin/python2.6
 
 
-import cli
+import utils.cli as cli
 import subprocess
 
 import os

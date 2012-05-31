@@ -41,7 +41,7 @@ class Player_status(GObject.GObject):
 
 	@command_sender
 	def update_status(self):
-		print("updating status {0}".format(self.num_check))
+		# print("updating status {0}".format(self.num_check))
 		self.num_check=self.num_check+1
 		if self.get_current_time()==False and self.get_playing():
 			self.emit("play_ended")

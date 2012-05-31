@@ -1,15 +1,21 @@
-#! /usr/bin/pytohn
+#! /usr/bin/python -u
 #encoding:utf-8
 
+import pickle
 
 from gi.repository import GObject
-from twisted.internet import gtk2reactor,threads,defer
+
+from twisted.internet import threads,defer
+from twisted.internet.protocol import Factory,Protocol
+from twisted.internet.endpoints import TCP4ServerEndpoint,UNIXServerEndpoint
+from twisted.protocols.basic import NetstringReceiver
 
 import dl_manager
 import play_tpb_search
-import test_dl_manager
+from utils.messages import *
+# import test_dl_manager
 
-class episode_finder(GObject.GObject):
+class episode_video_finder(GObject.GObject):
         __gsignals__={ 
                 'candidates_found' : (GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE, ()), 
                 'file_downloaded' : (GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE, ()), 
@@ -24,6 +30,7 @@ class episode_finder(GObject.GObject):
 		def on_found(results):
 			print "emitting candidates found"
 			self.emit("candidates_found")
+			print results
 			return results
 
 		finder = play_tpb_search.TPBMagnetFinder()
@@ -34,6 +41,7 @@ class episode_finder(GObject.GObject):
 		return d
 	
 	def _got_candidates(self,results):
+		print "got candidates"
 		self.candidates = results
 		return results
 
@@ -56,4 +64,58 @@ class episode_finder(GObject.GObject):
 		print "____________"
 
 		return adder.add_magnet(chosen.magnet,dl_path).addBoth(self.on_addition_success).addBoth(adder.cleanup)
+
+class EpisodeFinderServerFactory(Factory):
+	def buildProtocol(self,addr):
+		return EpisodeFinderServer()
+	def doStart(self):
+		print "started"
+		import sys
+		#sys.stdout.flush()
+		print "flushed"
+
+	def doStop(self):
+		print "stopped !!"
+	
+class EpisodeFinderServer(NetstringReceiver):
+	def __init__(self):
+		print "building episode finder"
+		self.state = "wait_episode"
+		self.encoder = message_encoder()
+
+	def doStart(self):
+		print "started"
+		import sys
+		print "flushed"
+
+	def doStop(self):
+		print "stopped !!"
+	
+	def handle_ep_request(self,ep):
+		def on_result_found(results):
+			print "sending results"
+			self.sendString(self.encoder.encode(results))
+		self.episode_video_finder = episode_video_finder(ep)
+		deferred = self.episode_video_finder.search_newep(ep)
+		return deferred.addCallback(on_result_found)
+
+	def sendObject(self,obj):
+		self.sendString(self.encoder.encode(obj))
+
+	def handle_dl_request(self,message):
+		def send_result(result):
+			self.sendObject(result)
+		print "dl_request ..."
+		self.episode_video_finder.on_chosen_launch_dl(message).addCallback(send_result)
+
+	def stringReceived(self,request):
+		print "string received !!"
+		#print "request : {}".format(request)
+		
+		request = self.encoder.decode(request)
+		if self.state == "wait_episode":
+			self.state = "wait_answer"
+			self.handle_ep_request(request)
+		else:
+			self.handle_dl_request(request)
 
