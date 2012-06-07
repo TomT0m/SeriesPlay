@@ -1,8 +1,9 @@
 #! /usr/bin/python
+#encoding:utf-8
 
 from utils.cli import command_executer, command_line_generator, config_manager, FileNameError
 
-from trace import trace
+# from trace import trace
 
 import numbers
 import os

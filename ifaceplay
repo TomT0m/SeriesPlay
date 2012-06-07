@@ -7,103 +7,36 @@ import os
 import subprocess
 import numbers
 import threading
+import re
 
 path_to="./ui"
 
 # Gtk and twisted imports
 
-#try:
-#	import pyGtk
-#	pyGtk.require("2.0")
-#except:
-#	print("pas Gtk")
-#try:
-	# import Gio
-
-#except:
-
 from gi.repository import GObject
 from gi.repository import Gtk
 from gi.repository import Gio
-
-# import gi.pygtkcompat
-# gi.pygtkcompat.enable_gtk(version='3.0')
 
 from twisted.internet import gireactor
 gireactor.install(useGtk=True)
 from twisted.internet import reactor
 
-# from twisted.internet import reactor 
-# gireactor.install(useGtk=True)
-# Gtk.gdk.threads_init()
-# external libs
 from pysrt import SubRipFile, SubRipItem, SubRipTime
 
 #internal imports
 
 from gobj_player import *
+from gobj_player.gobj_player import * 
 from datasource.play_subdl import TVsubtitlesSubdownloader as subdownloader_subdownloader 
 from datasource.video_finder_client import network_episode_video_finder as episode_video_finder
- 
+from utils.on_event_deferred import *
+
+import ui
+from ui import subtitles
+from ui.videotorrent_list_model import * # video_result_store
 import utils.cli
-import mplayer_slave
-
-import re
-import trace
-
 from utils.cli import command_executer, command_line_generator, config_manager
-
-from serie_manager import seriesManager, bashManagedEpisode, bashManagedSerie, bashManagedSeriesData, bashManagedSerieFactory, episode
-
-
-class subtitles_store:
-	"""
-	GTK Store for showing subtitles into the UI
-	"""
-	def __init__(self,filename):
-		self.filename=filename
-			
-		self.model=Gtk.ListStore(object,str)
-		self.srtModel=[]
-		if not os.path.exists(filename) :
-			raise(FileNameError(filename))
-
-		try:
-			self.srtModel=SubRipFile.open(path=filename)
-		except UnicodeDecodeError as unic:
-			print(unic)
-			try:
-				print("trying ..." ,"ISO-8859-1")
-				self.srtModel=SubRipFile(path=filename,encoding="iso-8859-1")
-			except Exception as e :
-				print(e)
-				self.model=None
-		except IOError as error:
-			print("Impossible de lire le fichier de sous titre")
-
-		for line in self.srtModel:
-			# print("appending",line)
-			self.model.append([line,line.text])
-
-	def get_model(self):
-		return self.model
-
-class video_result_store(object):
-	"""GTK store for video candidates results
-	"""
-	def __init__(self,candidates,model = None):
-		self.candidates = candidates
-		if not model:
-			self.model=Gtk.ListStore(object,str)
-		else:
-			self.model = model
-
-		for candidate in candidates:
-			print "appending res to model"
-			self.model.append([candidate,candidate.filename])
-
-	def get_model(self):
-		return self.model
+from serie.serie_manager import seriesManager, bashManagedEpisode, bashManagedSerie, bashManagedSeriesData, bashManagedSerieFactory, episode
 
 def thr_sub_dl(model,subdl):
 	"""
@@ -143,19 +76,6 @@ class PlayEventManager:
 		rep = self.serieModel.getCurrentSerie().get_path_to_current_season()
 		command_gen.add_option_single(rep)
 		command_launch.get_output(command_gen.get_command())
-
-	def init_video_finder(self):
-		cellpb = Gtk.CellRendererText()
-		cellpbtext = Gtk.CellRendererText()
-		filename=Gtk.TreeViewColumn("Début",cellpb)
-
-		def filename_text_getter(column,cell,model,iter,unknown = None):
-			print 'getter called'
-			import pdb ; pdb.set_trace()
-			cell.set_property('text', model.get_value(iter, 0).filename)
-
-		filename.set_cell_data_func(cellpbtext,filename_text_getter)
-		self.iface.getitem("TorrentList").append_column(filename)
 
 	def __init__(self, iface,serieModel):
 		self.iface=iface
@@ -197,8 +117,8 @@ class PlayEventManager:
 		self.iface.getitem("SubtitlesTreeView").set_search_equal_func(self.subtitle_comparison_function,"")
 
 		# init of video finder window
-		self.init_video_finder()
-		
+		init_torrentlist_viewer(self.iface.getitem("TorrentList"))
+
 		## MPlayer subwindow		
 
 		# self.MPlayer=mplayer_slave.player(self.iface.getitem("VideoZone").window.xid)
@@ -391,22 +311,36 @@ class PlayEventManager:
 		finder = episode_video_finder(ep)
 		window = self.iface.getitem("VideoSearchResultWindow")
 		candidates_view = self.iface.getitem("TorrentList")
- 
+ 		dl_button = self.iface.getitem("ChooseTorrent")
 		# finder.plop = False
+
+		chosen = defer.Deferred()
+
+		def choose(plop):
+			print "chosen !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+			print "chosen !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+			print "chosen !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+			(model,iter) = candidates_view.get_selection().get_selected()
+			choice = model.get_value(iter,0)
+			print "{} {}".format(choice.filename,choice.magnet)
+			finder.on_chosen_launch_dl(choice)
+			
+			return model.get_value(iter,0)	
+
+		def chosen(dl):
+			window.hide()
+			return dl 
+
 		def on_candidates_found(self):
-			# print "candidates_found_called"
-			print "presenting window"
 			candidates = finder.candidates
 			store = video_result_store(candidates)
 			print candidates_view
-			# candidates_view = self.iface.getitem("TorrentList")
 			candidates_view.set_model(store.get_model())
-			print "..."
-			print window
-			import pdb ; pdb.set_trace()
+			defe = OnEventDeferred(dl_button,"clicked")
+			defe.addCallback(choose).addCallback(chosen) #.addCallback(finder.on_chosen_launch_dl).addCallback(chosen)
+			#chose.
 			window.present()
-			print "!"
-			# print window
+			
 		finder.connect("candidates_found",on_candidates_found)
 		finder.search_newep(ep)
 		print "added"
@@ -461,7 +395,7 @@ class PlayEventManager:
 			val = widg.get_model().get_value(widg.get_active_iter(),0)
 			self.serieModel.getCurrentSerie().set_subtitle_file(val)
 			absolute_subfile=os.path.join(self.serieModel.getCurrentSerie().get_path_to_current_season(),val)
-			self.subtitle_file_model=subtitles_store(absolute_subfile)
+			self.subtitle_file_model=ui.subtitles.subtitles_store(absolute_subfile)
 			self.iface.getitem("SubtitlesTreeView").set_model(self.subtitle_file_model.get_model())
 
 	def update_subs(self):
@@ -541,7 +475,7 @@ class App:
 			"on_SlaveMplayerPlay_clicked" : self.eventMgr.play_with_sub,
 			"on_PromptedPlay_clicked" : self.eventMgr.prompted_play,
 			"on_SerieListCombo_changed" : self.eventMgr.selected_serie_changed,
-			"on_MainWindow_destroy" : Gtk.main_quit,
+			# "on_MainWindow_destroy" : self.end,
 			"on_numSaisonSpin_value_changed" : self.eventMgr.update_num_saison,
 			"on_numEpSpin_value_changed" : self.eventMgr.update_num_episode,
 			"on_skipTimeSpin_value_changed" : self.eventMgr.update_skip_time,

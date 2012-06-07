@@ -6,10 +6,6 @@ class torrent_finder:
 		pass
 	def find_magnet_for(serie,num_season,num_ep):
 		pass
-
-
-
-
 # most simple API in the world for now : 
 # is supposed to take a filename and do automatically all the work and downloading the subtitle in the same path.
 	def get_for_ep(self,nom_serie,):
@@ -24,6 +20,7 @@ import urllib
 import zipfile
 import os
 import sys
+import re
 
 class result(object):
 	def __init__(self,html):
@@ -51,22 +48,44 @@ class TPBMagnetFinder(torrent_finder):
 		self.parser= etree.HTMLParser()
 
 	def result_from_tablerow(self,row):
+		torrent_td_request = "td[div[@class='detName']]"
+		torrent_td = row.xpath(torrent_td_request)[0]
+		
+		result = self.result_from_torrent_td(torrent_td)
+		
+		# leechers extraction
+		leechers_div = row.xpath("td[@align='right']")[0]
+		result.leechers=int(leechers_div.text)
+
+		return result
+
+	def extract_filesize(self,td):
+
+		pass
+
+	def result_from_torrent_td(self,td):
 		"""
 		constructs a function to extract informations (magnet and name)
 		from HTML-tree row of TPB result table in search page. 
 		"""
 
-		res = result(row)
-		filename_div = row.xpath(self.request_filename)
+		res = result(td)
+		filename_div = td.xpath(self.request_filename)
 
 		# extraction of filename
 		filename =filename_div[0].xpath("a")
 		res.filename = filename_div[0].text #attrib["title"]
 
 		# extraction of magnet link if present
-		magnet_a = row.xpath(self.request_magnet)
+		magnet_a = td.xpath(self.request_magnet)
 		res.magnet = magnet_a[0].attrib["href"]
-
+		
+		#extraction of file size
+		info = td.xpath("font[@class='detDesc']")[0].text
+		filesize = re.search("Size(.*iB)",info)
+	
+		res.filesize = filesize.group(1)
+	
 		return res
 
 	def get_pattern(self,season,ep):
@@ -104,7 +123,7 @@ class TPBMagnetFinder(torrent_finder):
 		request = "//table[@id='searchResult']"
 		table = (tree.xpath(request)[0])
 	
-		request = "//td[div[@class='detName']]"
+		request = "//tr[td[div[@class='detName']]]"
 		results = map(lambda x:self.result_from_tablerow(x),table.xpath(request))
 		
 		return results

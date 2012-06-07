@@ -1,6 +1,7 @@
+#!/usr/bin/python
 #encoding:utf-8
 
-import unittest
+from twisted.trial import unittest
 from datasource.play_tpb_search import *
 
 sample_html="""
@@ -403,9 +404,12 @@ class TestTpbSearch(unittest.TestCase):
 		#print("Found magnet: {}\n".format(results[0].magnet))
 		self.assertTrue(results[0].filename=="Dirty Sexy Money S02E07 The Summer House HDTV XviD-FQM [eztv]")
 		self.assertTrue(results[0].magnet=="magnet:?xt=urn:btih:038afcbf064655596d0500af2b74ebddf731bd5d&dn=Dirty+Sexy+Money+S02E07+The+Summer+House+HDTV+XviD-FQM+%5Beztv%5D&tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A80&tr=udp%3A%2F%2Ftracker.publicbt.com%3A80&tr=udp%3A%2F%2Ftracker.istole.it%3A6969&tr=udp%3A%2F%2Ftracker.ccc.de%3A80")
+		self.assertTrue(results[0].leechers==7)
 
 	def test_invalid_server(self):
 		self.finder.server="invalid.invalid"
-		with self.assertRaises(ConnectionException):
-			self.finder.get_candidates("plop",1,2)			
-
+		self.assertRaises(ConnectionException,self.request)
+		#self.finder.get_candidates("plop",1,2)	
+		
+	def request(self):
+		self.finder.get_candidates("plop",1,2)	

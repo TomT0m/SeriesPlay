@@ -110,7 +110,7 @@ class testServer(unittest.TestCase):
 		d = point.connect(EpisodeFinderClientFactory())
 	
 		# Connection, getting results
-		d.addCallback(got_protocol).addErrback(connection_error).addCallback(got_results)
+		d.addCallback(got_protocol).addErrback(connection_error) #.addCallback(got_results)
 		# Choosing 
 		deferred_results.addCallback(choose).addCallback(request_res_from_dl)
 		# Ending 

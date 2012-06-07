@@ -30,17 +30,36 @@ def filename_text_getter(column,cell,model,itera,unknown = None):
 	# import pdb ; pdb.set_trace()
 	cell.set_property('text', model.get_value(itera, 0).filename)
 
+def leechers_text_getter(column,cell,model,itera,unknown = None):
+	value = model.get_value(itera,0).leechers
+	cell.set_property('text', "<i>{}</i>".format(value))
+	
+def filesize_text_getter(column,cell,model,itera,unknown=None):
+	value=model.get_value(itera,0).filesize
+	cell.set_property('text',u"{}".format(value))
 
 def init_torrentlist_viewer(viewer):
-	#cellpb = Gtk.CellRendererText()
+	"""function setting up the torrent choices view
+		@param : viewer, the Tree View
+	"""
+	
+	# filename rendering
 	cellpbtext = Gtk.CellRendererText()
 	filename=Gtk.TreeViewColumn("Name",cellpbtext)
-	print "initting"
+	
 	filename.set_cell_data_func(cellpbtext,filename_text_getter)
-	#self.iface.getitem("TorrentList").append_column(filename)
 	viewer.append_column(filename)
-	print "initted"
 
-#class finder_viewer(GObject.GObject):
-#	def __init__()
+	# sources number rendering
+	sources_renderer = Gtk.CellRendererText()
+	sources_column=Gtk.TreeViewColumn("Sources",sources_renderer)
+	sources_column.set_cell_data_func(sources_renderer,leechers_text_getter)
+
+	# filesize rendering
+	filesize_renderer = Gtk.CellRendererText()
+	filesize_column=Gtk.TreeViewColumn("Size",filesize_renderer)
+	filesize_column.set_cell_data_func(filesize_renderer,filesize_text_getter)
+
+	viewer.append_column(filesize_column)
+
 
