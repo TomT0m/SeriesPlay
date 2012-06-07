@@ -478,7 +478,7 @@ class App:
 		
 		#Set the Glade file
 		#self.gladefile = path_to + "IfacePlay.glade"  
-		self.gladefile = path_to + "IfacePlay2.ui"  
+		self.gladefile = path_to + "IfacePlay.ui"  
 		builder = gtk.Builder()
 		builder.add_from_file(self.gladefile)
 

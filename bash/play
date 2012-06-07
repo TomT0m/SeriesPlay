@@ -158,29 +158,6 @@ function escape {
         echo "$1" | sed "s/\,/\\\\,/g"  |  sed "s/(/\\\\(/g" | sed "s/)/\\\\)/g" | sed "s/\./\\./g"
 }
 
-# search file
-function get_candidate(){
-	local OLDIFS="$IFS"
-	IFS="@"
-	local FILE=""
-	local play="$1"
-	for m in $MOTIF; do
-	#IFS="@"
-		for candidate in *$m$play*.{wmv,avi,mp4} ; do
-			echo "tested:" ${candidate} >&2
-	# we take the last one :
-			if [ -f "$candidate" ] ; then
-	
-				echo "founded:" ${candidate} >&2
-				FILE=$candidate
-			fi
-		done
-		IFS=" "
-	done
-	IFS="$OLDIFS"
-	echo $FILE
-}
-
 
 function gen_list(){
 	local saison="$1"
