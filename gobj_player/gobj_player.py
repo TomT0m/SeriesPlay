@@ -1,46 +1,18 @@
 # encoding : utf-8
 
-# import pygtk
-import gobject
-import pygtk
-pygtk.require('2.0')
-import gobject
+from gi.repository import Gtk
+from gi.repository import GObject
 import time 
 
 from decorator import decorator
 
 import mplayer_slave
 
-class Car(gobject.GObject):
-    __gproperties__ = {
-        'fuel' : (gobject.TYPE_FLOAT, 'fuel of the car',
-                  'amount of fuel that remains in the tank',
-                  0, 60, 50, gobject.PARAM_READWRITE)
-        }
-
-    def __init__(self):
-        gobject.GObject.__init__(self)
-        self.fuel = 50
-
-    def do_get_property(self, property):
-        if property.name == 'fuel':
-            return self.fuel
-        else:
-            raise AttributeError, 'unknown property %s' % property.name
-
-    def do_set_property(self, property, value):
-        if property.name == 'fuel':
-            self.fuel = value
-        else:
-            raise AttributeError, 'unknown property %s' % property.name
-
-gobject.type_register(Car)
 def command_sender(func):
         def wrapper(*args,**kwargs):
-                print("sending ... command {0}".format(func.__name__))
 		try:
-			print(func)
-			print(args)
+			#print(func)
+			#print(args)
 			result=func(*args,**kwargs)
 
 		except IOError:
@@ -52,30 +24,33 @@ def command_sender(func):
 
 
 
-class Player_status(gobject.GObject):
+class Player_status(GObject.GObject):
 	__gproperties__ = { 
-		'playing' : (	gobject.TYPE_BOOLEAN,                        # type
+		'playing' : (	GObject.TYPE_BOOLEAN,                        # type
 				'playing status',                         # nick name
 				'true if currently playing', # description
 				False,                                        # default value
-				gobject.PARAM_READWRITE)                   # flags
+				GObject.PARAM_READWRITE)                   # flags
 	}
 	__gsignals__ = {
-		'player_restarted' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, ()),
-		'play_ended' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, ())
+		'player_restarted' : (GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE, ()),
+		'play_ended' : (GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE, ())
 	}
 	# gsignal('engine-started', float)
 
 
 	@command_sender
 	def update_status(self):
-		print(self)
-		self.get_current_time()
-		pass
+		# print("updating status {0}".format(self.num_check))
+		self.num_check=self.num_check+1
+		if self.get_current_time()==False and self.get_playing():
+			self.emit("play_ended")
+			self.stop()
+		return True
 
 	def __init__(self,player=None):
-
-		gobject.GObject.__init__(self)
+		self.num_check=0
+		GObject.GObject.__init__(self)
 		print("creating the slave mplayer")
 		if player==None:
 			self.player=mplayer_slave.player()
@@ -83,8 +58,8 @@ class Player_status(gobject.GObject):
 			self.player=player
 		self.playing=False
 		self.pause = False
-		self.gstatusupdater=gobject.timeout_add(500, self.update_status)
-
+		self.gstatusupdater=GObject.timeout_add_seconds(2, self.update_status)
+		
 	def do_get_property(self, property):
 		if property.name == 'fuel':
 			return self.fuel
@@ -138,7 +113,12 @@ class Player_status(gobject.GObject):
 
 	@command_sender
 	def play(self,filename):
-		return self.player.play(filename)
+		if self.player.play(filename):
+			self.set_playing()
+			return True
+		else:
+			return False
+
 	@command_sender
 	def get_video_resolution(self):
 		return self.player.get_video_resolution()
@@ -153,6 +133,5 @@ class Player_status(gobject.GObject):
 	#	except IOError:
 	#		self.emit('play_ended')
 
-gobject.type_register(Player_status)
-
+# GObject.type_register(Player_status)
 

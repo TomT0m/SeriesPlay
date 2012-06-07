@@ -1,6 +1,6 @@
 #! /usr/bin/python
 
-from cli import command_executer, command_line_generator, config_manager, FileNameError
+from utils.cli import command_executer, command_line_generator, config_manager, FileNameError
 
 from trace import trace
 
@@ -80,7 +80,11 @@ class seriesManager:
 	def get_current_serie(self):
 		return self.executer.get_output(["series","-C"]).strip().strip(" ")
 	def get_num_current_saison(self,nom):
-		return int(self.executer.get_output(["series","-N","-D",nom]).strip())
+		res = self.executer.get_output(["series","-N","-D",nom]).strip()
+		if res != "":
+			return int(res)
+		else:
+			return None
 
 	# @trace
 	def get_serie_list(self):
@@ -91,12 +95,17 @@ class seriesManager:
 		return liste_en_chaine
 
 	def get_current_episode(self,nom_serie,num_saison):
-		ficname=self.get_path_to_season(nom_serie,num_saison) + self.config_file_season_name
+		ficname=""
+		try:
+			ficname=self.get_path_to_season(nom_serie,num_saison) + self.config_file_season_name
+		except (ValueError,TypeError):
+			return None
+
 		if os.path.exists(ficname):
 			try:
 				num = int(self.read_conf_var(ficname,self.play_current_episode_var).strip())
 				return num
-			except  ValueError :
+			except  (ValueError,TypeError) :
 				return None
 		return None
 
@@ -175,6 +184,7 @@ class bashManagedEpisode(episode):
 		self.skiptime=None
 		self.decaytime=None
 	
+
 class Serie: 
 	def __init__(self,nom):
 		self.nom=nom
@@ -272,11 +282,18 @@ class bashManagedSerie(Serie):
 		return self.manager.get_num_current_saison(self.nom)
 
 	def get_num_prochain_episode(self):
-		num=self.manager.get_current_episode(self.nom,self.get_num_saison_courante())
+		try:
+			num=self.manager.get_current_episode(self.nom,self.get_num_saison_courante())
+		except ValueError,TypeError:
+			num=None
+
 		if num != None:
 			return num
 		else:
 			return 1
+
+	def get_next_episode(self):
+		return bashManagedEpisode(self,self.get_num_derniere_saison_vue(),self.get_num_prochain_episode())
 
 
 	def get_num_dernier_episode_vu_in_season(self,num_saison):
@@ -332,6 +349,12 @@ class bashManagedSerie(Serie):
 	def get_path_to_current_season(self):
 		return self.manager.get_path_to_season(self.nom,self.num_saison)
 
+	def get_path_to_season(self,season):
+		return self.manager.get_path_to_season(self.nom,season)
+
+	#def get_path_to_season(self,episode):
+	#	return 
+
 	def get_subtitle_list(self):
 		return self.manager.get_subtitle_candidates(self.nom,self.num_saison,self.num_episode)
 
@@ -383,9 +406,11 @@ class SeriesData(object):
 		print("pappy adding serie")
 	
 class bashManagedSeriesData(SeriesData):
-	def __init__(self,manager,serieFactory):
+	def __init__(self,manager,serieFactory=None):
 		self.manager=manager
 		self.serieFactory=serieFactory
+		if not self.serieFactory:
+			self.serieFactory = bashManagedSerieFactory(manager)
 		
 		liste = manager.get_serie_list()
 		super(type(self),self).__init__(manager.get_current_serie(), liste)
