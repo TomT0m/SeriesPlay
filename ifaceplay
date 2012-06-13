@@ -21,7 +21,6 @@ from twisted.internet import gireactor
 gireactor.install(useGtk=True)
 from twisted.internet import reactor
 
-from pysrt import SubRipFile, SubRipItem, SubRipTime
 
 #internal imports
 
@@ -444,7 +443,7 @@ class App:
 		
 		#Set the Glade file
 		#self.gladefile = path_to + "IfacePlay.glade"  
-		self.gladefile = os.path.join(path_to,"IfacePlay.ui")
+		self.gladefile = os.path.join(ui.ui_file)
 		builder = Gtk.Builder()
 		builder.add_from_file(self.gladefile)
 
