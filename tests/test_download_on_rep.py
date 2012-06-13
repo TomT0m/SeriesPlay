@@ -22,23 +22,6 @@ import tests.common_test
 
 import sys,os
 
-class OnEventDeferred(defer.Deferred,GObject.GObject):
-	def __init__(self,obj,event,*args):
-		defer.Deferred.__init__(self)
-		GObject.GObject.__init__(self)
-		obj.connect(event,self.emited,*args)
-
-	def emited(self,*args):
-		print "OnEventDeferred : event catched"
-		self.callback(*args)
-
-	def err_emited(self,*args):
-		print "OnEventDeferred : err event catched"
-		self.errback(*args)
-
-	def add_error_event(self,obj,event,*args):
-		obj.connect(event,self.err_emited,*args)	
-
 
 class gobj(GObject.GObject):
 	__gsignals__={
@@ -63,7 +46,10 @@ class testOnEventDeferred(unittest.TestCase):
 		defe.add_error_event(obj,"error")
 		obj.emit("error")
 		return defe.addCallbacks(self.fail, self.assertIsInstance, errbackArgs=(Failure,))
-
+	def testCleanup(self):
+		obj = gobj()
+		defe = OnEventDeferred(obj,"ok")
+		defe.clean()
 
 
 

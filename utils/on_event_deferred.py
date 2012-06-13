@@ -13,7 +13,7 @@ class OnEventDeferred(defer.Deferred,GObject.GObject):
 		defer.Deferred.__init__(self)
 		GObject.GObject.__init__(self)
 		self.handlers_id=[obj.connect(event,self.emited,*args)]
-
+		self.obj=obj
 	def emited(self,*args):
 		print "OnEventDeferred : event catched"
 		self.callback(*args)
@@ -30,4 +30,4 @@ class OnEventDeferred(defer.Deferred,GObject.GObject):
 
 	def clean(self):
 		for id in self.handlers_id:
-			obj.handler_disconnect(id)
+			self.obj.handler_disconnect(id)
