@@ -10,7 +10,7 @@ from twisted.python.failure import Failure
 from unittest import expectedFailure
 # reactor.install()
 
-import serie_manager
+import serie.serie_manager
 from datasource.episode_video_finder import episode_video_finder
 from utils.on_event_deferred import OnEventDeferred
 

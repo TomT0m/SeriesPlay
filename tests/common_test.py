@@ -1,4 +1,4 @@
-from serie_manager import *
+from serie.serie_manager import *
 
 
 class DummySeriesManager(seriesManager):
