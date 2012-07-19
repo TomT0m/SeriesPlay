@@ -16,6 +16,8 @@ class result:
 	def __init__(self,torrent,link):
 		self.magnet = link
 		self.filename = torrent
+		self.filesize= "Wow !"
+		self.leechers=90
 def create_torrentlist():
 	return [result("a","b"),result("c","d")]
 

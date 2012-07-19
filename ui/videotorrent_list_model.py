@@ -32,7 +32,7 @@ def filename_text_getter(column,cell,model,itera,unknown = None):
 
 def leechers_text_getter(column,cell,model,itera,unknown = None):
 	value = model.get_value(itera,0).leechers
-	cell.set_property('text', "<i>{}</i>".format(value))
+	cell.set_property('markup', "<i>{}</i>".format(value))
 	
 def filesize_text_getter(column,cell,model,itera,unknown=None):
 	value=model.get_value(itera,0).filesize
@@ -54,6 +54,8 @@ def init_torrentlist_viewer(viewer):
 	sources_renderer = Gtk.CellRendererText()
 	sources_column=Gtk.TreeViewColumn("Sources",sources_renderer)
 	sources_column.set_cell_data_func(sources_renderer,leechers_text_getter)
+
+	viewer.append_column(sources_column)
 
 	# filesize rendering
 	filesize_renderer = Gtk.CellRendererText()
