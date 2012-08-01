@@ -97,11 +97,14 @@ class TPBMagnetFinder(torrent_finder):
 		"""
 		returns a string in which the HTML of the request is stored
 		"""
+		r1 = None
 		try:
 			h1 = httplib.HTTPConnection(self.server)
 			 #h1.set_debuglevel(10)
+			serie = serie.replace(' ','%20')
 			url="/search/{0}%20{1}/0/7/0".format(serie,self.get_pattern(season,ep))
 			h1.request("GET",url,headers={'User-Agent':"Mozilla/5.0 (X11; Linux i686; rv:10.0.4) Gecko/20100101 Firefox/10.0.4 Iceweasel/10.0.4"})
+			print url
 			r1 = h1.getresponse()
 		except OSError as (errno,error):
 			print "impossible de se connecter au serveur"
@@ -114,10 +117,12 @@ class TPBMagnetFinder(torrent_finder):
 			raise ConnectionError(None)
 
 		data = r1.read()
+		print 'plop <<<<{}>>>>'.format(data)
 		return data
 
 	def extract_table_result(self,request_html):
 		parser = etree.HTMLParser()
+		print 'html : >>>>>{}<<<<< '.format(request_html)
 		tree = etree.parse(StringIO(request_html),parser)
 		
 		request = "//table[@id='searchResult']"

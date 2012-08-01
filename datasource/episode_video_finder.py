@@ -95,9 +95,14 @@ class EpisodeFinderServer(NetstringReceiver):
 		def on_result_found(results):
 			print "sending results"
 			self.sendString(self.encoder.encode(results))
+		def on_err(err):
+			print "Erreur lors de l'ep request"
+			print(err)
+			return False
+
 		self.episode_video_finder = episode_video_finder(ep)
 		deferred = self.episode_video_finder.search_newep(ep)
-		return deferred.addCallback(on_result_found)
+		return deferred.addCallback(on_result_found).addErrback(on_err)
 
 	def sendObject(self,obj):
 		self.sendString(self.encoder.encode(obj))

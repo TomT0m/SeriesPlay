@@ -18,8 +18,11 @@ class result:
 		self.filename = torrent
 		self.filesize= "Wow !"
 		self.leechers=90
+
+
 def create_torrentlist():
-	return [result("a","b"),result("c","d")]
+	table=[result('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa {}'.format(x),'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb') for x in range(100)]
+	return table
 
 
 

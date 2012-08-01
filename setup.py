@@ -11,7 +11,7 @@ print (bash_scripts)
 setup(
     name='SeriePlay',
     version='1.0dev',
-    packages=['datasource','ui','utils','pysrt','gobj_player','serie'],
+    packages=['datasource','ui','utils','pysrt','gobj_player','serie','tests'],
     scripts=['ifaceplay','video_finder_server.py']+bash_scripts,
     license='WTFPL Version 2',
     description='TV series collection manager',
