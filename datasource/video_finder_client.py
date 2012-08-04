@@ -2,15 +2,18 @@
 #encoding:utf-8
 
 
-from gi.repository import GObject
+from gi.repository import GObject # pylint: disable=E0611
 
-from twisted.internet import defer,reactor
+from twisted.internet import defer, reactor
 import twisted.internet.protocol as protocol
 from twisted.protocols.basic import NetstringReceiver
-from twisted.internet.endpoints import *
+#from twisted.internet.endpoints import *
+from twisted.internet.endpoints import TCP4ClientEndpoint #point
 
 from utils.messages import message_encoder
 
+import logging
+from logging import info, debug
 
 
 class EpisodeFinderClientProtocol(NetstringReceiver):
@@ -19,109 +22,126 @@ class EpisodeFinderClientProtocol(NetstringReceiver):
 		self.encoder = message_encoder()
 		# self.ep_request()
 		self.defer = defer
+		self.state = "init"
+		self.defer_search_results = None
+		self.defered_result_request_dl = None
 
-	def stringReceived(self,string):
+	def stringReceived(self, string):
 		result = self.encoder.decode(string)
 		print "receiving data"
 		if self.state == "waiting_results" : 
 			self.defer_search_results.callback(result)
-			self.state="waiting_dl_request"
+			self.state = "waiting_dl_request"
 		else:
 			print "recieving result of dl launch order"
-			self.deferred_result_request_dl.callback(result) 
+			self.defered_result_request_dl.callback(result) 
 			print "finished"
 			self.disconnect()
 
-	def ep_request(self,ep):
+	def ep_request(self, episode):
 		print "sending request"
-		self.sendString(self.encoder.encode(ep))
+		self.sendString(self.encoder.encode(episode))
 		self.defer_search_results = defer.Deferred()
-		self.state ="waiting_results"
+		self.state = "waiting_results"
 		return self.defer_search_results
 
 	def results_found(self):
 		pass
 
-	def dl_request(self,num):
-		print "dl_request ..." 
-		self.deferred_result_request_dl = defer.Deferred()
+	def dl_request(self, num):
+		logging.info("dl_request ...") 
+		self.defered_result_request_dl = defer.Deferred()
 		self.sendString(self.encoder.encode(num))
-		return self.deferred_result_request_dl
+		return self.defered_result_request_dl
 
 	def disconnect(self):
 		return self.transport.loseConnection()
 
 
 class EpisodeFinderClientFactory(protocol.Factory):
-	def buildProtocol(self,addr):
+	
+	def __init__(self):
+		pass
+		#protocol.Factory.__init__(self)
+
+	def buildProtocol(self, addr):
 		return EpisodeFinderClientProtocol()
 
 class network_episode_video_finder(GObject.GObject):
-        __gsignals__={ 
-                'candidates_found' : (GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE, ()), 
-                'file_downloaded' : (GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE, ()), 
-                'download_not_launched' : (GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE, ()),  
-                'download_launched' : (GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE, ())  
+	__gsignals__ = { 
+		'candidates_found' : (GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE, ()), 
+		'file_downloaded' : (GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE, ()), 
+		'download_not_launched' : (GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE, ()),  
+		'download_launched' : (GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE, ())  
         }
-	def __init__(self,episode):
+	def __init__(self, episode):
 		GObject.GObject.__init__(self)
 		self.episode = episode
 		self.connected = False
+		self.protoc = None
 
+		self.got_results = None # defered end of request
+		
+		self.candidates = None # store for candidates
 	# connection management callbacks
 
-	def cleanup(self,res): 
+	def cleanup(self, res): 
 		print res 
 		print "cleaning up ..." 
 		if self.connected: 
 			return self.protoc.disconnect() 
 		else: 
 			return True
-	def got_protocol(self,p):
-		print "\n\o/ got connection"
+	def got_protocol(self, proto):
+		logging.info("\n\o/ got connection")
 		def on_found(results):
-			print "emitting candidates found"
-			self.emit("candidates_found")
+			debug("emitting candidates found")
+			self.emit("candidates_found") # pylint: disable=E1101
 			print results
 			return results
-		d = p.ep_request(self.episode).addCallback(self._got_candidates).addCallback(on_found)
-		self.setProtocol(p)
-		# print "protoq {}".format(self.protoc)
-		self.connected =True
+		defe = proto.ep_request(self.episode)\
+				.addCallback(self._got_candidates)\
+				.addCallback(on_found)
+		self.set_protocol(proto)
+		debug("protoq {}".format(self.protoc))
+		self.connected = True
 		# self.got_protocol.callback()
-		return d 
+		return defe 
 
-        def setProtocol(self,p):
-                self.protoc=p
-                print "setting protoc"
+	def set_protocol(self, protoc):
+		self.protoc = protoc
 
 	# API implementation
 
-	def search_newep(self,ep):
-
-		print "searching newep ..."
-		point = TCP4ClientEndpoint(reactor,"localhost",8010)
+	def search_newep(self, ep):
+		info("searching newep {}...".format(ep))
+		point = TCP4ClientEndpoint(reactor, "localhost", 8010)
 		self.got_results = defer.Deferred()
+
   		# on connection launching request
-                d = point.connect(EpisodeFinderClientFactory()).addCallback(self.got_protocol)
+		defe = point.connect(EpisodeFinderClientFactory())\
+				.addCallback(self.got_protocol)
 		print "adding callbacks for searching new eps"
-		# d.addCallback(self.got_protocol) # .addCallback(self._got_candidates).addCallback(on_found)
+		# d.addCallback(self.got_protocol) 
+		# .addCallback(self._got_candidates).addCallback(on_found)
 		return self.got_results
 
-	def _got_candidates(self,results):
+	def _got_candidates(self, results):
 		print "candidates ..."
-		self.candidates=results
+		self.candidates = results
 		self.got_results.callback(results)
 		return results
 
-	def on_launched(self,res):
-		self.emit("download_launched")
+	def on_launched(self, res):
+		self.emit("download_launched") # pylint: disable=E1101
 		return res
-	def on_chosen_launch_dl(self,chosen):
-		#adder = dl_manager.deluge_dl_adder(host="localhost") 
-		defer = self.protoc.dl_request(chosen)
-		print "dl_launched"
-		return defer.addCallback(self.on_launched).addBoth(self.cleanup) # adder.add_magnet(chosen.magnet,dl_path).addBoth(self.on_addition_success).addBoth(adder.cleanup)
+
+	def on_chosen_launch_dl(self, chosen):
+		defe = self.protoc.dl_request(chosen)
+		info("dl_launched")
+		return defe.addCallback(self.on_launched).addBoth(self.cleanup) 
+		# adder.add_magnet(chosen.magnet,dl_path)\
+				#.addBoth(self.on_addition_success).addBoth(adder.cleanup)
 
 
 # class 
