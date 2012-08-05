@@ -16,7 +16,11 @@ from gobj_player.mplayer_slave import MPlayerSlave
 
 @decorator
 def command_sender(func):
+	""" decorator for catching and watching 
+	state changes of slave, restarting in case of non answers
+	"""
 	def wrapper(*args, **kwargs):
+		""" the real wrapper """ 
 		try:
 			result = func(*args, **kwargs)
 
@@ -48,15 +52,17 @@ class PlayerStatus(GObject.GObject):
 
 	@command_sender
 	def update_status(self):
+		""" update the internal status
+		TODO : develop """
 		# print("updating status {0}".format(self.num_check))
-		self.num_check=self.num_check+1
+		self.num_check = self.num_check+1
 		if self.get_current_time()==False and self.get_playing():
 			self.emit("play_ended") #pylint: disable=E1101
 			self.stop()
 		return True
 
-	def __init__(self,player=None):
-		self.num_check=0
+	def __init__(self, player=None):
+		self.num_check = 0
 		GObject.GObject.__init__(self)
 		info("creating the slave mplayer")
 		if player == None:
@@ -81,12 +87,16 @@ class PlayerStatus(GObject.GObject):
 #			raise AttributeError, 'unknown property %s' % property.name
 	@command_sender
 	def set_playing(self):
+		""" Setter for player, 
+		should be unused for now """
 		self.playing = True
 
 	def get_playing(self):
+		""" getter for status """ 
 		return self.playing
 
 	def stop(self):
+		""" ??? unfinished """ 
 		if self.playing :
 			self.playing = False
 	
@@ -97,6 +107,8 @@ class PlayerStatus(GObject.GObject):
 
 	@command_sender
 	def handle_seek(self, srt_time):
+		""" seeks to a srt time 
+		TODO: Debug this""" 
 		seek_time = srt_time.to_time()
 		debug(seek_time)
 		seek_seconds = seek_time.hour * 3600 + \
@@ -108,23 +120,29 @@ class PlayerStatus(GObject.GObject):
 
 	@command_sender
 	def get_current_time(self):
-		
+		""" get current status where seeked """	
 		return self.player.get_current_seconds()
 
 	@command_sender
 	def get_subtitles_delay(self):
+		""" get delay of subtitle showed """
 		return self.player.get_subtitles_delay()
 
 	@command_sender
 	def set_subtitles_delay(self, absolutedelay):
+		""" Sets the subtiltle delay """ 
 		return self.player.set_subtitles_delay(absolutedelay)
 
 	@command_sender
 	def set_subtitles(self, subfile):
+		""" Sets the subtitles file """ 
 		return self.player.load_subtitle(subfile)
 
 	@command_sender
 	def play(self, filename):
+		""" Sets the file to play
+		returns a True boolean if success, False otherwise
+		"""
 		if self.player.play(filename):
 			self.set_playing()
 			return True
@@ -133,17 +151,12 @@ class PlayerStatus(GObject.GObject):
 
 	@command_sender
 	def get_video_resolution(self):
+		""" Returns a int * int couple """
 		return self.player.get_video_resolution()
 
 	def end_player(self):
+		""" kills the player """ 
 		return self.player.end_player()
-
-	#@command_sender
-	#def wrapped_command(self, command, *args=None):
-	#	try
-	#		result=command(args)
-	#	except IOError:
-	#		self.emit('play_ended')
 
 # GObject.type_register(Player_status)
 
