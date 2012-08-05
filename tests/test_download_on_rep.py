@@ -11,7 +11,7 @@ from unittest import expectedFailure
 # reactor.install()
 
 import serie.serie_manager
-from datasource.episode_video_finder import episode_video_finder
+from datasource.episode_video_finder import EpisodeVideoFinder
 from utils.on_event_deferred import OnEventDeferred
 
 import deluge.component as component
@@ -83,21 +83,21 @@ class testDownloadOnRep(unittest.TestCase):
 		def print_results(results):
 			print("Résultats {}".format(len(results)))
 			return results
-		ep_finder = episode_video_finder(self.episode)
+		ep_finder = EpisodeVideoFinder(self.episode)
 		return ep_finder.search_newep(self.episode).addCallback(print_results)
 
 
 	def test_search_for_ep(self):
 		def print_results(results):
 			print("Résultats {}".format(len(results)))
-		ep_finder = episode_video_finder(self.episode)
+		ep_finder = EpisodeVideoFinder(self.episode)
 		ep_find = ep_finder.search_newep(self.episode).addCallback(print_results)
 		test = OnEventDeferred(ep_finder,"candidates_found")
 		#defe = ep_find.search_newep(self.episode)
 		return test.addCallback(self.assertTrue)
 
 	def test_search_and_choose(self):
-		ep_finder = episode_video_finder(self.episode)
+		ep_finder = EpisodeVideoFinder(self.episode)
 		def print_results(results):
 			print("Résultats {}".format(len(results)))
 		def catch_err(res):

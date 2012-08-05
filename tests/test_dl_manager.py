@@ -94,18 +94,18 @@ class dl_manager_tester(unittest.TestCase):
 		pass
 
 	def test_connect(self):
-		plop=deluge_dl_adder(port=self.Port)
+		plop=DelugeDlAdder(port=self.Port)
 		return plop.connect().addCallback(plop.cleanup) #.addCallback()
 	# unittest.@skip
 
 	# @skip("do not understand what happens")
 	def test_add_magnet(self):
-		plop = deluge_dl_adder(port=self.Port)
+		plop = DelugeDlAdder(port=self.Port)
 		return plop.add_magnet(magnet_link,".").addBoth(plop.cleanup)
 	test_add_magnet.skip="do not understand"
  
 	def test_config_value(self):
-		plop=deluge_dl_adder(port=self.Port)
+		plop=DelugeDlAdder(port=self.Port)
 		c = plop.connect()
 		c.addCallback(plop.on_connect_success).addCallback(plop.cleanup)
 		return c # plop.connect(port=self.Port).addCallback(plop.on_connect_success) #.addCallback(self.cleanup) #.addCallback()
@@ -113,7 +113,7 @@ class dl_manager_tester(unittest.TestCase):
 	
 class TestServer(unittest.TestCase):
 	def test_1(self):
-		plop=deluge_dl_adder(host="localhost")
+		plop=DelugeDlAdder(host="localhost")
 		import os
 		added = plop.add_magnet(magnet_link, os.getcwd()).addCallback(plop.cleanup) #.addErrback(plop.cleanup)
 		return added
