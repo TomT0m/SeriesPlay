@@ -121,7 +121,7 @@ class network_episode_video_finder(GObject.GObject):
   		# on connection launching request
 		defe = point.connect(EpisodeFinderClientFactory())\
 				.addCallback(self.got_protocol)
-		print "adding callbacks for searching new eps"
+		debug("adding callbacks for searching new eps")
 		# d.addCallback(self.got_protocol) 
 		# .addCallback(self._got_candidates).addCallback(on_found)
 		return self.got_results

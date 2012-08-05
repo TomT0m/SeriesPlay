@@ -1,53 +1,74 @@
 #! /usr/bin/python
 #encoding:utf-8
+"""
+A ThePirateBay magnet source
+"""
 
-class torrent_finder:
-	def __init__(self):
-		pass
-	def find_magnet_for(serie,num_season,num_ep):
-		pass
-# most simple API in the world for now : 
-# is supposed to take a filename and do automatically all the work and downloading the subtitle in the same path.
-	def get_for_ep(self,nom_serie,):
-		pass
 
 from lxml import etree
 from StringIO import StringIO as StringIO
 
+from logging import debug, info
+
 import socket
 import httplib
-import urllib
-import zipfile
-import os
-import sys
 import re
 
-class result(object):
-	def __init__(self,html):
-		#self.html=html
-		self.filename=None
-		self.magnet=None
+class Result(object):
+	""" base class for found magnet storage """
+	def __init__(self, html):
+		# self.html = html
+		self.filename = None
+		self.magnet = None
+		self.leechers = None
+		self.filesize = None
+
+class TorrentFinder(object):
+	""" base class for magnet and torrent finder
+	"""
+	def __init__(self):
+		pass
+	def find_magnet_for(self, serie, num_season, num_ep):
+		""" prototype for the search method
+		@returns a set of Result
+		"""
+		pass
+# most simple API in the world for now : 
+	def get_for_ep(self, serie, num_ep):
+		""" Obsolete ?
+		is supposed to take a filename and do automatically all the work and downloading the subtitle in the same path.
+		"""
+		pass
+
 
 #class result_factory(object):
 	#@classmethod
 	#request_filename="div[@class='detName']/a/"
 
 class ConnectionException(Exception):
-	def __init__(self,error,errno=None):
+	""" Exception for network connection problems, in general
+	"""
+	def __init__(self, error, errno=None):
 		Exception.__init__(self)
-		self.errno=errno
-		self.error=error
+		self.errno = errno
+		self.error = error
 
 
-class TPBMagnetFinder(torrent_finder):
-	request_filename="div[@class='detName']/a"
-	request_magnet="a[starts-with(@href,'magnet')]"
+class TPBMagnetFinder(TorrentFinder):
+	"""
+	Magnet finder implemented for The Pirate Bay
+	"""
+	request_filename = "div[@class='detName']/a"
+	request_magnet = "a[starts-with(@href,'magnet')]"
 
 	def __init__(self):
-		self.server="thepiratebay.se"
-		self.parser= etree.HTMLParser()
+		TorrentFinder.__init__(self)
+		self.server = "thepiratebay.se"
+		self.parser = etree.HTMLParser()
 
-	def result_from_tablerow(self,row):
+	def result_from_tablerow(self, row):
+		""" constructs a Result from a HTML row element of TPB
+		"""
 		torrent_td_request = "td[div[@class='detName']]"
 		torrent_td = row.xpath(torrent_td_request)[0]
 		
@@ -55,93 +76,110 @@ class TPBMagnetFinder(torrent_finder):
 		
 		# leechers extraction
 		leechers_div = row.xpath("td[@align='right']")[0]
-		result.leechers=int(leechers_div.text)
+		result.leechers = int(leechers_div.text)
 
 		return result
 
-	def extract_filesize(self,td):
-
+	def extract_filesize(self, td_elem):
+		""" not implemented"""
 		pass
 
-	def result_from_torrent_td(self,td):
+	def result_from_torrent_td(self, td_elem):
 		"""
 		constructs a function to extract informations (magnet and name)
 		from HTML-tree row of TPB result table in search page. 
 		"""
 
-		res = result(td)
-		filename_div = td.xpath(self.request_filename)
+		res = Result(td_elem)
+		filename_div = td_elem.xpath(self.request_filename)
 
 		# extraction of filename
-		filename =filename_div[0].xpath("a")
 		res.filename = filename_div[0].text #attrib["title"]
 
 		# extraction of magnet link if present
-		magnet_a = td.xpath(self.request_magnet)
+		magnet_a = td_elem.xpath(self.request_magnet)
 		res.magnet = magnet_a[0].attrib["href"]
 		
 		#extraction of file size
-		info = td.xpath("font[@class='detDesc']")[0].text
-		filesize = re.search("Size(.*iB)",info)
+		magnet_info = td_elem.xpath("font[@class='detDesc']")[0].text
+		filesize = re.search("Size(.*iB)", magnet_info)
 	
 		res.filesize = filesize.group(1)
 	
 		return res
-
-	def get_pattern(self,season,ep):
+	@classmethod
+	def get_pattern(cls, season, episode):
 		""" returns filename patterns suech as "S01E12"
 		"""
-		return "S{0:02d}E{1:02d}".format(season,ep)
+		return "S{0:02d}E{1:02d}".format(season, episode)
 
-	def get_search_results(self, serie, season, ep):
+	def get_search_results(self, serie, season, episode):
 		"""
 		returns a string in which the HTML of the request is stored
 		"""
-		r1 = None
+		response = None
 		try:
-			h1 = httplib.HTTPConnection(self.server)
-			 #h1.set_debuglevel(10)
-			serie = serie.replace(' ','%20')
-			url="/search/{0}%20{1}/0/7/0".format(serie,self.get_pattern(season,ep))
-			h1.request("GET",url,headers={'User-Agent':"Mozilla/5.0 (X11; Linux i686; rv:10.0.4) Gecko/20100101 Firefox/10.0.4 Iceweasel/10.0.4"})
-			print url
-			r1 = h1.getresponse()
-		except OSError as (errno,error):
-			print "impossible de se connecter au serveur"
-			raise ConnectionException(error)
-		except socket.gaierror as er:
-			raise ConnectionException(er)
-		except socket.timeout as er:
-			raise ConnectionException(er)
-		except:
-			raise ConnectionError(None)
+			connection = httplib.HTTPConnection(self.server)
+			#h1.set_debuglevel(10)
+			serie = serie.replace(' ', '%20')
+			url = "/search/{0}%20{1}/0/7/0"\
+					.format(serie, self.get_pattern(season, episode))
 
-		data = r1.read()
-		print 'plop <<<<{}>>>>'.format(data)
+			user_agent = \
+"Mozilla/5.0 (X11; Linux i686; rv:10.0.4)\
+ Gecko/20100101 Firefox/10.0.4 Iceweasel/10.0.4"
+			heads = {
+					'User-Agent' : user_agent
+					}
+			connection.request("GET", url, headers = heads) 
+			debug("url request : {}, headers : >{}<".format(url, heads))
+
+			response = connection.getresponse()
+
+		except OSError as (errno, error): #pylint: disable=W0623
+			info("impossible de se connecter au serveur  - errno {}, error {}"\
+					.format(errno, error))
+			raise ConnectionException(error)
+		except socket.gaierror as err:
+			raise ConnectionException(err)
+		except socket.timeout as err:
+			raise ConnectionException(err)
+		except:
+			raise ConnectionException(None)
+
+		data = response.read()
+		debug('results <<<<{}>>>>'.format(data))
 		return data
 
-	def extract_table_result(self,request_html):
+	def extract_table_result(self, request_html):
+		""" Calculates a set of Result 
+		from a html TPB result page string"""
 		parser = etree.HTMLParser()
-		print 'html : >>>>>{}<<<<< '.format(request_html)
-		tree = etree.parse(StringIO(request_html),parser)
+		debug('html : >>>>>{}<<<<< '.format(request_html))
+		tree = etree.parse(StringIO(request_html), parser)
 		
 		request = "//table[@id='searchResult']"
 		table = (tree.xpath(request)[0])
 	
 		request = "//tr[td[div[@class='detName']]]"
-		results = map(lambda x:self.result_from_tablerow(x),table.xpath(request))
+		results = [self.result_from_tablerow(x) for x in table.xpath(request)] 
+		# results = map(lambda x:self.result_from_tablerow(x), table.xpath(request))
 		
 		return results
 
-	def get_candidates(self,serie,season,ep):
-		html= self.get_search_results(serie,season,ep)
-		results =self.extract_table_result(html)
+	def get_candidates(self, serie, season, episode):
+		""" Get candidates Results by performing a request on TPB
+		"""
+		html = self.get_search_results(serie, season, episode)
+		results = self.extract_table_result(html)
 		return results
 
 		
-	
-if __name__ == "__main__":
+def test():
+	""" Main test function (obsolete) """
 	obj = TPBMagnetFinder()
-	obj.get_candidates("Dexter",5,12)
+	obj.get_candidates("Dexter", 5, 12)
 
 
+if __name__ == "__main__":
+	test()

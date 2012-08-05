@@ -22,6 +22,7 @@ import tests.common_test
 
 import sys,os
 
+import logging
 
 class gobj(GObject.GObject):
 	__gsignals__={
@@ -65,6 +66,8 @@ class testDownloadOnRep(unittest.TestCase):
 		TODO : Creating a fake environment
 		"""
 		
+		print("logging")
+		logging.basicConfig(level=logging.DEBUG)
 #		self.serie_manager = DummySeriesManager()
 #		
 #		self.serie = serie_manager.bashManagedSerie("Dexter",self.serie_manager)

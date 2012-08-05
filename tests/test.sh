@@ -7,8 +7,14 @@ cd ..
 #python -m unittest discover
 #echo $# ; exit
 
+
 if [ "$#" == "0" ] ; then
 	trial -r gi tests/test*.py
 else
-	trial -r gi $@
+	tests=("$@")
+	args=()
+	for index in ${!tests[*]}; do
+		args[$index]="tests/${tests[$index]}"
+	done
+	trial -r gi "${args[@]}"
 fi
