@@ -1,6 +1,6 @@
 #!/usr/bin/python
 #encoding:utf-8
-
+""" Episode Finder implementation to go with video_finder_server.py"""
 
 from gi.repository import GObject # pylint: disable=E0611
 
@@ -26,7 +26,7 @@ class EpisodeFinderClientProtocol(NetstringReceiver):
 		self.defer_search_results = None
 		self.defered_result_request_dl = None
 
-	def stringReceived(self, string):
+	def stringReceived(self, string): #pylint: disable=C0103
 		result = self.encoder.decode(string)
 		print "receiving data"
 		if self.state == "waiting_results" : 
@@ -64,10 +64,10 @@ class EpisodeFinderClientFactory(protocol.Factory):
 		pass
 		#protocol.Factory.__init__(self)
 
-	def buildProtocol(self, addr):
+	def buildProtocol(self, addr): #pylint: disable=C0103
 		return EpisodeFinderClientProtocol()
 
-class network_episode_video_finder(GObject.GObject):
+class NetworkEpisodeVideoFinder(GObject.GObject):
 	__gsignals__ = { 
 		'candidates_found' : (GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE, ()), 
 		'file_downloaded' : (GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE, ()), 
@@ -113,13 +113,13 @@ class network_episode_video_finder(GObject.GObject):
 
 	# API implementation
 
-	def search_newep(self, ep):
-		info("searching newep {}...".format(ep))
+	def search_newep(self, episode):
+		info("searching newep {}...".format(episode))
 		point = TCP4ClientEndpoint(reactor, "localhost", 8010)
 		self.got_results = defer.Deferred()
 
   		# on connection launching request
-		defe = point.connect(EpisodeFinderClientFactory())\
+		point.connect(EpisodeFinderClientFactory())\
 				.addCallback(self.got_protocol)
 		debug("adding callbacks for searching new eps")
 		# d.addCallback(self.got_protocol) 

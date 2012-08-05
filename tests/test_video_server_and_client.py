@@ -123,7 +123,7 @@ class testServer(unittest.TestCase):
 	def test_object_client(self):
 		# def choose():
 		#		self.candidates = None
-		finder = network_episode_video_finder(self.episode)
+		finder = NetworkEpisodeVideoFinder(self.episode)
 		finder.search_newep(self.episode)
 		self.res = None
 		founded = OnEventDeferred(finder, "candidates_found").addCallback(self.set_candidates)
@@ -139,7 +139,7 @@ class testServer(unittest.TestCase):
 
 
 	def test_search_and_choose(self):
-		ep_finder = network_episode_video_finder(self.episode)
+		ep_finder = NetworkEpisodeVideoFinder(self.episode)
 		def print_results(results):
 			print("Résultats {}".format(len(results)))
 		def catch_err(res):

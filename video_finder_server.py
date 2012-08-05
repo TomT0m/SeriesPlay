@@ -4,11 +4,7 @@
 (different process for avoiding compatibility of twisted version, 
 temporary workaround and toying with twisted for trying it)
 """
-import logging
 
-logging.basicConfig(level=logging.DEBUG, filename='plop.log')
-
-# from twisted.internet.protocol import Factory
 from twisted.internet.endpoints import TCP4ServerEndpoint
 from twisted.internet import reactor
 
