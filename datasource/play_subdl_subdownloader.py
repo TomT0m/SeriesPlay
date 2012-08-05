@@ -40,7 +40,9 @@ class SubdownloaderSubdownloader:
 		print("plop for", filepath)
 		print("connecting ...")
 		(files, subs) = ScanFolder(filepath, recursively = False)
-		print(["{0} : {1} \n".format(fic.getFilePath(), fic.getHash()) for fic in files])
+		print(["{0} : {1} \n"\
+				.format(fic.getFilePath(), fic.getHash()) 
+				for fic in files])
 		
 		while not self.sdservice.is_connected():
 			#elf.sdservice.is_connected()
@@ -54,6 +56,7 @@ class SubdownloaderSubdownloader:
 		# self.sdservice.connect()
 
 def test():
+	""" main testing file function"""
 	import sys
 	logging.basicConfig()
 	print "Testing !!"

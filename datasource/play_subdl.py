@@ -11,9 +11,6 @@ class Subdownloader(object):
 	Most simple API in the world"""
 	def __init__(self):
 		pass
-	def get_status(self):
-		""" ??? to delete probably """ 
-		pass
 	
 	def get_for_ep(self, serie_name, season_number, 
 			episode_number, destination_directory):
@@ -32,10 +29,6 @@ class EmptySubdownloader(object):
 		self.results = []
 		debug("initialized")
 
-	def get_status(self):
-		""" Dummy implemenatation """
-		return "Always here for you !"
-
 	def get_founded_subtitles(self):
 		""" results getter """
 		return self.results
@@ -52,16 +45,17 @@ import os
 class TVsubtitlesSubdownloader(Subdownloader):
 	""" Subdownloader specialized and implemented 
 	for tvsubtitles.org"""
-
-	def get_data_from_url(self, url):
+	
+	@classmethod
+	def get_data_from_url(cls, url):
 		""" downloads the html string from a url
 		(should be refactored)
 		"""
 		stream = urllib.urlopen(url)
 		data = stream.read()
 		return data
-
-	def get_allserie_list(self):
+	@classmethod
+	def get_allserie_list(cls):
 		""" Getting the website serie list page
 		html string
 		"""
@@ -74,13 +68,14 @@ class TVsubtitlesSubdownloader(Subdownloader):
 	#def dl_serie_allsub(self,filename):
 	#	pass	
 
-	def get_serie_id(self, nom_serie):
+	@classmethod
+	def get_serie_id(cls, nom_serie):
 		""" get the website serie id from
 		@nom_serie : the serie name string
 		"""
 
 		debug("------------------------------------------------------")
-		data = self.get_allserie_list()
+		data = cls.get_allserie_list()
 
 		parser = etree.HTMLParser()
 		tree = etree.parse(StringIO(data), parser)
@@ -110,7 +105,8 @@ class TVsubtitlesSubdownloader(Subdownloader):
 		info("extracting from {0} : {1}".format(url, num))
 		return num
 
-	def get_episode_id(self, num_saison, num_ep, html):
+	@classmethod
+	def get_episode_id(cls, num_saison, num_ep, html):
 		""" searches the website id from an episode
 		in a webpage string
 		"""
@@ -143,22 +139,25 @@ class TVsubtitlesSubdownloader(Subdownloader):
 
 		return ep_id
 
-	def get_sublist_from_epid_url(self, ep_id, lang="en"):
+	@classmethod
+	def get_sublist_from_epid_url(cls, ep_id, lang="en"):
 		""" calculates the url associated to an episode id"""
 		# http://www.tvsubtitles.net/episode-34678-en.html
 		return "http://www.tvsubtitles.net/episode-{0}-{1}.html".format(ep_id, lang)
-
-	def get_season_dl_url(self, num_serie, num_saison, lang="en"):
+	@classmethod
+	def get_season_dl_url(cls, num_serie, num_saison, lang="en"):
 		""" calculates the url associated to a season"""
 		return "http://www.tvsubtitles.net/download-{0}-{1}-{2}.html"\
 				.format(num_serie, num_saison, lang)
 
-	def get_season_subtitles_html_url(self, num_serie, num_saison):
+	@classmethod
+	def get_season_subtitles_html_url(cls, num_serie, num_saison):
 		""" calculated the url associated to a season (all languages ??)"""
 		return "http://www.tvsubtitles.net/tvshow-{0}-{1}.html"\
 				.format(num_serie, num_saison)
 
-	def unzip_file(self, filename, destination):
+	@classmethod
+	def unzip_file(cls, filename, destination):
 		""" unzip a zip file into destination rep"""
 		archive = zipfile.ZipFile(filename,"r")
 		archive.extractall(destination)
@@ -181,7 +180,8 @@ class TVsubtitlesSubdownloader(Subdownloader):
 
 		info("------------------------------------------------------")
 
-	def get_all_files_id(self, data_sublist):
+	@classmethod
+	def get_all_files_id(cls, data_sublist):
 		""" gets the subtitles files id from the 
 		html page presenting the list of subtitles"""
 		req = '/html/body/div/div[3]/div/a[div/@class="subtitlen"]'
@@ -195,15 +195,29 @@ class TVsubtitlesSubdownloader(Subdownloader):
 		#return map( lambda a_elem: 
 		# a_elem.attrib['href'].split("-")[1].split(".")[0], a_elems)
 
-	def get_url_from_subid(self, subid):
+	@classmethod
+	def get_url_from_subid(cls, subid):
 		""" calculates the url presenting a specified subtitle file"""
 		return "http://www.tvsubtitles.net/download-{0}.html".format(subid)
+
+	@classmethod
+	def download_list(cls, epid_list, destination):
+		""" Download and extracts the epid 
+		list into destination """
+		for epid in epid_list:
+			url = cls.get_url_from_subid(epid)
+			info("url {} :".format(url))
+			data = cls.get_data_from_url(url)
+
+			stream = StringIO(data)
+			zipstream = zipfile.ZipFile(stream, 'r')
+			
+			zipstream.extractall(destination)
 
 	def get_for_ep(self, nom_serie, num_saison, numep, rep_destination):
 		""" Finds, downloads and copies to rep_destination subtitles for an episode
 		"""
 		info("------------------------------------------------------")
-		data = self.get_allserie_list()
 		num = self.get_serie_id(nom_serie) 
 
 		url_dl = self.get_season_dl_url(num, num_saison)
@@ -218,22 +232,14 @@ class TVsubtitlesSubdownloader(Subdownloader):
 		debug("Ep ID:{0}".format(id_ep))
 		
 		url_subs = self.get_sublist_from_epid_url(id_ep)
-		print(url_subs)
+		debug(url_subs)
 		sub_list_html = self.get_data_from_url(url_subs)
 
 		liste = self.get_all_files_id(sub_list_html)
 
 		debug("subtitles list :".format(liste))
 		
-		for epid in liste:
-			url = self.get_url_from_subid(epid)
-			info("url {} :".format(url))
-			data = self.get_data_from_url(url)
-
-			stream = StringIO(data)
-			zipstream = zipfile.ZipFile(stream, 'r')
-			
-			zipstream.extractall(rep_destination)
+		self.download_list(liste, rep_destination)
 		info("------------------------------------------------------")
 
 
