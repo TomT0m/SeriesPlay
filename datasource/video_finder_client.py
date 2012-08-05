@@ -17,49 +17,62 @@ from logging import info, debug
 
 
 class EpisodeFinderClientProtocol(NetstringReceiver):
+	""" Twisted Protocol implementation """
 	def __init__(self):
-		# Protocol.__init__(self)
 		self.encoder = message_encoder()
-		# self.ep_request()
 		self.defer = defer
 		self.state = "init"
 		self.defer_search_results = None
 		self.defered_result_request_dl = None
 
 	def stringReceived(self, string): #pylint: disable=C0103
+		""" Data received protocol management
+			Internal state dependant behavior :
+			(init -> waiting results)
+			(waiting results -> disconnect)
+		"""
 		result = self.encoder.decode(string)
-		print "receiving data"
+		debug("receiving data")
 		if self.state == "waiting_results" : 
 			self.defer_search_results.callback(result)
 			self.state = "waiting_dl_request"
 		else:
-			print "recieving result of dl launch order"
+			info("recieving result of dl launch order")
 			self.defered_result_request_dl.callback(result) 
-			print "finished"
+			info("finished : disconnecting")
 			self.disconnect()
 
 	def ep_request(self, episode):
-		print "sending request"
+		""" requests to deluge for @episode"""
+		info("sending request to deluge")
 		self.sendString(self.encoder.encode(episode))
 		self.defer_search_results = defer.Deferred()
 		self.state = "waiting_results"
 		return self.defer_search_results
 
 	def results_found(self):
+		""" Unused method ? obsolete ?"""
 		pass
 
-	def dl_request(self, num):
+	def dl_request(self, answer):
+		""" Dl request handler -> 
+		asks "answer" to be downloaded to the server
+
+		returns the defered which will be triggered 
+		when the server will have treated the request.
+		"""
 		logging.info("dl_request ...") 
 		self.defered_result_request_dl = defer.Deferred()
-		self.sendString(self.encoder.encode(num))
+		self.sendString(self.encoder.encode(answer))
 		return self.defered_result_request_dl
 
 	def disconnect(self):
+		""" Disconnects """
 		return self.transport.loseConnection()
 
 
 class EpisodeFinderClientFactory(protocol.Factory):
-	
+	""" Factory for the client """	
 	def __init__(self):
 		pass
 		#protocol.Factory.__init__(self)
@@ -68,6 +81,7 @@ class EpisodeFinderClientFactory(protocol.Factory):
 		return EpisodeFinderClientProtocol()
 
 class NetworkEpisodeVideoFinder(GObject.GObject):
+	""" Gobject encapsulation of Twisted Client"""
 	__gsignals__ = { 
 		'candidates_found' : (GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE, ()), 
 		'file_downloaded' : (GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE, ()), 
@@ -85,35 +99,45 @@ class NetworkEpisodeVideoFinder(GObject.GObject):
 		self.candidates = None # store for candidates
 	# connection management callbacks
 
-	def cleanup(self, res): 
-		print res 
-		print "cleaning up ..." 
+	def cleanup(self, res):
+		""" Disconnects the twisted client """
+		debug("result before cleanup :", res) 
+		info("cleaning up ...")
+
 		if self.connected: 
 			return self.protoc.disconnect() 
 		else: 
 			return True
+
 	def got_protocol(self, proto):
-		logging.info("\n\o/ got connection")
+		""" Callback when connected
+		launches the request,
+		returns the defered which triggers when got the results
+		"""
+		info("\o/ got connection")
 		def on_found(results):
+			""" callback when results comes"""
 			debug("emitting candidates found")
 			self.emit("candidates_found") # pylint: disable=E1101
-			print results
+			debug(results)
 			return results
-		defe = proto.ep_request(self.episode)\
+
+		waiting_for_results = proto.ep_request(self.episode)\
 				.addCallback(self._got_candidates)\
 				.addCallback(on_found)
 		self.set_protocol(proto)
 		debug("protoq {}".format(self.protoc))
 		self.connected = True
-		# self.got_protocol.callback()
-		return defe 
+		return waiting_for_results 
 
 	def set_protocol(self, protoc):
+		""" protocol setter """
 		self.protoc = protoc
 
 	# API implementation
 
 	def search_newep(self, episode):
+		""" entry point """
 		info("searching newep {}...".format(episode))
 		point = TCP4ClientEndpoint(reactor, "localhost", 8010)
 		self.got_results = defer.Deferred()
@@ -122,29 +146,27 @@ class NetworkEpisodeVideoFinder(GObject.GObject):
 		point.connect(EpisodeFinderClientFactory())\
 				.addCallback(self.got_protocol)
 		debug("adding callbacks for searching new eps")
-		# d.addCallback(self.got_protocol) 
-		# .addCallback(self._got_candidates).addCallback(on_found)
 		return self.got_results
 
 	def _got_candidates(self, results):
-		print "candidates ..."
+		""" Callbacks when candidates arrives """
 		self.candidates = results
 		self.got_results.callback(results)
 		return results
 
 	def on_launched(self, res):
+		""" Callback when dl launched"""
 		self.emit("download_launched") # pylint: disable=E1101
 		return res
 
 	def on_chosen_launch_dl(self, chosen):
-		defe = self.protoc.dl_request(chosen)
-		info("dl_launched")
-		return defe.addCallback(self.on_launched).addBoth(self.cleanup) 
-		# adder.add_magnet(chosen.magnet,dl_path)\
-				#.addBoth(self.on_addition_success).addBoth(adder.cleanup)
+		""" Takes a choices, and launches the process
+		returns a defered which triggers when dl is launched
+		"""
+		wait_for_launched_dl = self.protoc.dl_request(chosen)
+		info("dl order launched for {}".format(chosen))
+		return wait_for_launched_dl\
+				.addCallback(self.on_launched)\
+				.addBoth(self.cleanup) 
 
-
-# class 
-def create_client():
-	pass
 	
