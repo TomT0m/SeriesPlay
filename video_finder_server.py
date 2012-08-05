@@ -14,9 +14,6 @@ from datasource.episode_video_finder import EpisodeFinderServerFactory
 
 def main():
 	""" Launches the server """
-	logging.basicConfig(level=logging.DEBUG, filename='plop.log')
-	logging.warning("plop")
-	print("plop")
 	endpoint = TCP4ServerEndpoint(reactor, 8010)
 	endpoint.listen(EpisodeFinderServerFactory())
 	reactor.run() # pylint: disable=E1101

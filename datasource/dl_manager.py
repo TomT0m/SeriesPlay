@@ -1,13 +1,13 @@
 #! /usr/bin/python
-# -*- coding: utf8 -*-
+# -*- coding: utf-8 -*-
 
-#from future import
 """
 Module for managing Torrent Downloads : sending dl orders to deluge, ...
 """
 from gi.repository import GObject # pylint: disable=E0611
 import gi.pygtkcompat
-import logging
+
+from logging import info, debug
 
 gi.pygtkcompat.enable()
 
@@ -56,29 +56,29 @@ class DelugeDlAdder(DlAdder):
 		Connects with deluge server
 		@returns a defered obj wich triggers when connected
 		"""
-		logging.info("connect host={}, port={}".format(self.host, self.port))
+		info("connect host={}, port={}".format(self.host, self.port))
 		if self.host == None:
 			self.defered_obj = client.connect()
 		elif self.port != None:
 			self.defered_obj = client.connect(port=self.port, host=self.host)
 		else:
 			self.defered_obj = client.connect(host=self.host)
-		logging.info("connecting request")	
+		info("connecting request")	
 		return self.defered_obj
 		# self.defered_obj.addCallback(self.make_magnet_callback(".") )
 
 	def on_connect_success(self, result):
 		""" callback when connection is successful
 		"""
-		logging.info("connection was succesful!")
-		logging.debug("result:{}".format(result))
+		info("connection was succesful!")
+		debug("result:{}".format(result))
 		def on_get_config_value(value, key):
 			""" Callbacks when config value got
 			"""
 			print "Got config value from the deamon :"
 			print u"{0}: {1}".format(key, value)
 			return True
-		self.emit("connected")
+		self.emit("connected") #pylint: disable=E1101
 		client.core.get_config_value("download_location")\
 				.addCallback(on_get_config_value, "download_location")
 
@@ -86,10 +86,10 @@ class DelugeDlAdder(DlAdder):
 		""" Error callback
 		do nothing but stop reactor
 		"""
-		logging.info("Connection failed!")
-		logging.debug("result: {]".format(result))
-		self.emit("connect-fail")
-		reactor.stop()
+		info("Connection failed!")
+		debug("result: {]".format(result))
+		self.emit("connect-fail") #pylint: disable=E1101
+		reactor.stop() #pylint: disable=E1101
 	
 	def launch_command_order(self, magnet_link, dl_directory):
 		""" Callback which launches the dl order to deluge
@@ -98,13 +98,13 @@ class DelugeDlAdder(DlAdder):
 			""" 
 			The callback which ultimately lauches the order
 			"""
-			logging.debug("calling magnet callback")
+			debug("calling magnet callback")
 			options = {"move_completed": True,
 				   "move_completed_path":dl_directory}
 			print "result of connection {}".format(res)
 			id_magnet = client.core.add_torrent_magnet(magnet_link, options)
 			
-			logging.debug("id mag:{}, link::{}\n, options:{}"
+			debug("id mag:{}, link::{}\n, options:{}"
 					.format(id_magnet, magnet_link, options))
 			return id_magnet
 
@@ -120,18 +120,24 @@ class DelugeDlAdder(DlAdder):
 		defe = self.connect()
 		deferred_launch_order = defer.Deferred()
 		def on_command_sent(result):
-			logging.debug("-->calling command sent")
+			""" Callback when command is send, triggers
+			launch order defered.
+			TODO: checks for necessity, obsolete ?
+			"""
+			debug("-->calling command sent")
 			deferred_launch_order.callback(result)
-			logging.debug("supposed to have triggered")
+			debug("supposed to have triggered")
 			return True
 
 		def on_error_sent(err):
-			logging.info("--> calling command sent -->error !!! <{0}>".format(err))
+			""" Error callback when magnet addition"""
+			info("--> calling command sent -->error !!! <{0}>".format(err))
 			deferred_launch_order.errback(err)
 			return False
 
 		def on_connected(res):
-			print "connected"
+			""" Deluge connected callback """
+			info("connected to deluge")
 			order_callback = self.launch_command_order(magnet_link, dl_directory)
 			print order_callback
 			res = order_callback(res)\
@@ -143,33 +149,38 @@ class DelugeDlAdder(DlAdder):
 		return deferred_launch_order
 
 	def cleanup(self, result=None):
-		logging.debug ("cleanup launched, result = {}".format(result))
+		""" cleanup callback """
+		debug ("cleanup launched, result = {}".format(result))
 		return client.disconnect()
 
 	def wait_for_cleaning(self):
-		defe = self.cleanup()
-		return defe
+		""" returns the disconnection defered"""
+		defered_disconnection = self.cleanup()
+		return defered_disconnection
 		
 	def success(self, defered_added_result):
+		""" Callback on successful addition """
 		defered_added_result.addCallback(self.cleanup)
-		print "success !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+		info("success dl addition: result {}", defered_added_result)
 
 	
 
 def main():
+	""" Test module function, obsolete """
 	magnet_link = "magnet:?xt=urn:btih:038afcbf064655596d0500af2b74ebddf731bd5d&d\
-			n=Dirty+Sexy+Money+S02E07+The+Summer+House+HDTV+XviD-FQM+%5Be\
-			zt\
-			v%5D&tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A80&tr=udp%3A\
-			%2F%2Ftracker.publicbt.com%3A80&tr=udp%3A%2F%2Ftracker.istole\
-			.it%3A6969&tr=udp%3A%2F%2Ftracker.ccc.de%3A80"
+n=Dirty+Sexy+Money+S02E07+The+Summer+House+HDTV+XviD-FQM+%5Be\
+zt\
+v%5D&tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A80&tr=udp%3A\
+%2F%2Ftracker.publicbt.com%3A80&tr=udp%3A%2F%2Ftracker.istole\
+.it%3A6969&tr=udp%3A%2F%2Ftracker.ccc.de%3A80"
 	plop = DelugeDlAdder(host="localhost")
 	connection_waiter = plop.connect()
 	connection_waiter.addCallback( plop.launch_command_order(magnet_link,".") )
-	connection_waiter.addCallback(lambda x: logging.info("cmmand launched !!"))\
-			.addCallback(reactor.stop) # addCallback(reactor.stop)
+	connection_waiter.addCallback(lambda x: info("cmmand launched !!"))\
+			.addCallback(reactor.stop) #pylint: disable=E1101
 	
-	reactor.run()
+	reactor.run()#pylint: disable=E1101
+
 
 if __name__ == "__main__":
 	main()
