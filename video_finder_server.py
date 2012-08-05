@@ -1,15 +1,23 @@
-#!/usr/bin/python -u
+#!/usr/bin/python 
 #encoding:utf-8
-
-from twisted.internet.protocol import Factory
+""" Main script for launching a episode finder server
+(different process for avoiding compatibility of twisted version, 
+temporary workaround and toying with twisted for trying it)
+"""
+# from twisted.internet.protocol import Factory
 from twisted.internet.endpoints import TCP4ServerEndpoint
 from twisted.internet import reactor
 
 
-from datasource.episode_video_finder import EpisodeFinderServer,EpisodeFinderServerFactory
+from datasource.episode_video_finder import EpisodeFinderServerFactory
 
 
-endpoint = TCP4ServerEndpoint(reactor,8010)
-endpoint.listen(EpisodeFinderServerFactory())
-reactor.run()
+def main():
+	""" Launches the server """
+	endpoint = TCP4ServerEndpoint(reactor, 8010)
+	endpoint.listen(EpisodeFinderServerFactory())
+	reactor.run() # pylint: disable=E1101
+
+if __name__ == "__main__":
+	main()
 
