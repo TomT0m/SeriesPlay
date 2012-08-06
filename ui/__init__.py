@@ -1,6 +1,6 @@
 #!/usr/bin/python
 #encoding: utf-8
-""" user inteface stuff related module """
+""" user interface stuff related module """
 
 import os
 
