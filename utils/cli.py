@@ -35,9 +35,9 @@ class CommandExecuter(object):
 		except OSError as (perror, msg): #pylint: disable=W0623
 			debug("Error executing {0} perr : {} msg :{}".format(cmd, perror, msg))
 			raise
-		except child_exception: #pylint: disable=E0602 
-			print "Error executing {0}".format(cmd)
-			raise	
+		#except child_exception: #pylint: disable=E0602 
+		#	print "Error executing {0}".format(cmd)
+		#	raise	
 		return process
 
 	def get_list_output(self, cmd, separator='\n', cwd=None):

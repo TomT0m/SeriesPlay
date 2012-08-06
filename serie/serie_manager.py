@@ -466,7 +466,7 @@ class SeriesData(object):
 class BashManagedSeriesData(SeriesData):
 	""" Serie info retrieved by bash scripts, historical"""
 	def __init__(self, manager, serie_factory = None):
-		SeriesData.__init__(self)
+		# SeriesData.__init__(self)
 		self.manager = manager
 		self.serie_factory = serie_factory
 		if not self.serie_factory:

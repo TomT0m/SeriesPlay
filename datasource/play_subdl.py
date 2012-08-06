@@ -6,6 +6,22 @@
 
 from logging import info, debug
 
+def thr_sub_dl(model, subdl):
+	"""
+TODO : Passer à twisted ?
+Téléchargment des sous-titres dans un thread
+	"""
+ 
+	info("thr method : calling")
+	serie = model.get_current_serie()
+	
+	nom = serie.nom
+	path = serie.get_path_to_current_season()
+	numep = serie.get_num_episode_courant()
+	numsais = serie.get_num_saison_courante()
+	
+	subdl.get_for_ep(serie.nom, numsais, numep, path) 
+
 class Subdownloader(object):
 	""" Base class for a subdownloader
 	Most simple API in the world"""

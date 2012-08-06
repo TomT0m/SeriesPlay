@@ -207,19 +207,6 @@ class MPlayerSlave:
 def test():
 	""" Useless for now """ 
 	print("Put here the unit tests ...")
-	# self.uifile = os.expanduser("~/share/MplayerTestUI.ui")
-	# self.wTree = gtk.Builder()
-	# self.wTree.add_from_file(self.uifile)
-	# MPlayer = MPlayerSlave()
-
-	# window = wTree.get_object("MainWindow")
-	# if window:
-    	# 	window.connect("destroy", gtk.main_quit)
-
-
-	# dic = { "on_button1_clicked" : self.button1_clicked, 
-    	# 	"on_MainWindow_destroy" : gtk.main_quit}
-	# wTree.connect_signals(dic)
 
 if __name__ == "__main__":
 	test()

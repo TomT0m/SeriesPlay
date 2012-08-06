@@ -1,288 +1,326 @@
 #!/usr/bin/env python2.7
-# coding=utf-8
-
+#encoding: utf-8
+""" Ui launching, main script """
 # system imports
-import sys
 import os
 import subprocess
-import numbers
+# import numbers
 import threading
-import re
 
 # Gtk and twisted imports
 
-from gi.repository import GObject
-from gi.repository import Gtk
-from gi.repository import Gio
+from gi.repository import GObject #pylint: disable = E0611
+from gi.repository import Gtk #pylint: disable = E0611
+from gi.repository import Gio #pylint: disable = E0611
 
 from twisted.internet import gireactor
-gireactor.install(useGtk=True)
+gireactor.install(useGtk = True)
 from twisted.internet import reactor
 
 
 #internal imports
 
-from gobj_player import *
-from gobj_player.gobj_player import * 
-from datasource.play_subdl import TVsubtitlesSubdownloader as subdownloader_subdownloader 
-from datasource.video_finder_client import NetworkEpisodeVideoFinder as episode_video_finder
-from utils.on_event_deferred import *
+from gobj_player.gobj_player import PlayerStatus 
+from datasource.play_subdl import TVsubtitlesSubdownloader\
+	as subdownloader_subdownloader, \
+	thr_sub_dl 
+from datasource.video_finder_client import \
+		NetworkEpisodeVideoFinder as episode_video_finder
+from utils.on_event_deferred import OnEventDeferred
 
-import ui
-from ui import subtitles
-from ui.videotorrent_list_model import * # video_result_store
-import utils.cli
-from utils.cli import CommandExecuter, CommandLineGenerator, ConfigManager
-from serie.serie_manager import SeriesManager, BashManagedEpisode, BashManagedSerie, BashManagedSeriesData, BashManagedSerieFactory, Episode
+import ui.subtitles, ui.utils
+# from ui import subtitles
+from ui.videotorrent_list_model import VideoResultStore# * # video_result_store
+from utils.cli import CommandExecuter, CommandLineGenerator
+from serie.serie_manager import SeriesManager, Episode, BashManagedSerieFactory
 
 import logging
 
-def thr_sub_dl(model,subdl):
-	"""
-TODO : Passer à twisted ?
-Téléchargment des sous-titres dans un thread
-	"""
- 
-	logging.info("thr method : calling")
-	serie=model.getCurrentSerie()
-	
-	nom = serie.nom
-	path = serie.get_path_to_current_season()
-	numep = serie.get_num_episode_courant()
-	numsais = serie.get_num_saison_courante()
-	
-	subdl.get_for_ep(serie.nom,numsais,numep,path) 
-
 	
 class PlayEventManager:
-	def update_serie_list(self,monitor,fichier,data,event):
+	""" Class regrouping all callbacks and
+	data updating functions
+	"""
+
+	def update_serie_list(self, monitor, fichier, data, event):\
+			#pylint: disable=W0613
+		""" Callbacks when a new file is added in the Serie directory,
+		Action : updates the Serie Combo
+		"""
 		logging.info("Recherche d'une nouvelle série")
-		model=self.iface.getitem("SerieListCombo").get_model()
-		serieList = self.manager.get_serie_list()
-		new_items = [x for x in serieList if not self.serieModel.series.has_key(x) ]
-		for x in new_items:
-			self.serieModel.add_serie(x)
-			model.append([x])
+		model = self.iface.getitem("SerieListCombo").get_model()
+		serie_list = self.manager.get_serie_list()
+		new_items = [x for x in serie_list if not self.serie_model.series.has_key(x) ]
+		for new_serie in new_items:
+			self.serie_model.add_serie(new_serie)
+			model.append([new_serie])
 		
-	def update_subs_and_file(self,monitor,fichier,data,event):
+	def update_subs_and_file(self, monitor, fichier, data, event):\
+			#pylint: disable=W0613
+		""" Callbacks when a new file is added on the Season directory
+		Action : calls update_serie
+		"""
 		logging.info("Recherche d'un nouveau sub / vidéo ?")
 		if ( event == Gio.FileMonitorEvent.CREATED ):
 			self.update_serie()
 
-	def open_filemanager(self,widg):
-		command_launch = command_executer()
-		command_gen = command_line_generator("xdg-open")
-		rep = self.serieModel.getCurrentSerie().get_path_to_current_season()
+	def open_filemanager(self, widg):#pylint: disable=W0613
+		""" Opens a Nautilus Window on current season directory"""
+		command_launch = CommandExecuter()
+		command_gen = CommandLineGenerator("xdg-open")
+		rep = self.serie_model.get_current_serie().get_path_to_current_season()
 		command_gen.add_option_single(rep)
 		command_launch.get_output(command_gen.get_command())
 
-	def __init__(self, iface,serieModel):
-		self.iface=iface
-		self.currentProcess=None
+	def __init__(self, iface, serie_model):
+		self.iface = iface
+		self.current_process = None
 		
 		logging.debug ("creating event manager")
-		self.playButtons=["Play","SlaveMplayerPlay","DlSub","OpenRep"]
-		self.serieModel=serieModel
+		self.play_buttons = ["Play", "SlaveMplayerPlay", "DlSub", "OpenRep"]
+		self.serie_model = serie_model
 		# self.update_serie()
 
-		#import pdb; pdb.set_trace()	
 		logging.debug ("Setting up file monitoring ... ")
 		
-		nomfic=serieModel.get_base_path()
+		nomfic = serie_model.get_base_path()
 		fichier = Gio.File.new_for_path(nomfic)
 		if(fichier):
-			self.monitor = fichier.monitor_directory(Gio.FileMonitorFlags.NONE,None)
-			self.monitor.connect("changed",self.update_serie_list)
+			self.monitor = fichier.monitor_directory(Gio.FileMonitorFlags.NONE, None)
+			self.monitor.connect("changed", self.update_serie_list)
 		
-		self.player_status = Player_status()
+		self.player_status = PlayerStatus()
 
 
 		## subtitle view init
 		cellpb = Gtk.CellRendererText()
 		cellpbtext = Gtk.CellRendererText()
-		time=Gtk.TreeViewColumn("Début",cellpb)
-		time.set_cell_data_func(cellpb,self.subtitle_begin_time_getter)
+		time = Gtk.TreeViewColumn("Début", cellpb)
+		time.set_cell_data_func(cellpb, ui.subtitles.subtitle_begin_time_getter)
 
-		column=Gtk.TreeViewColumn("Sous-Titre",cellpbtext,text=1)
+		column = Gtk.TreeViewColumn("Sous-Titre", cellpbtext, text =1)
 
-		column.set_cell_data_func(cellpbtext,self.subtitle_line_text_getter)
+		column.set_cell_data_func(cellpbtext, ui.subtitles.subtitle_line_text_getter)
 
-		treeview = self.iface.getitem("SubtitlesTreeView")
-		self.iface.getitem("SubtitlesTreeView").append_column(time)
-		num_trad_column = self.iface.getitem("SubtitlesTreeView").append_column(column)
+		sub_treeview = self.iface.getitem("SubtitlesTreeView")
+		sub_treeview.append_column(time)
+		sub_treeview.append_column(column)
 
-		self.iface.getitem("SubtitlesTreeView").set_enable_search(True)
-		self.iface.getitem("SubtitlesTreeView").set_search_column(1) # num_trad_column-1)
-		self.iface.getitem("SubtitlesTreeView").set_search_equal_func(self.subtitle_comparison_function,"")
+		sub_treeview.set_enable_search(True)
+		sub_treeview.set_search_column(1) # num_trad_column-1)
+		sub_treeview.set_search_equal_func(\
+				ui.subtitles.subtitle_comparison_function, "")
 
 		# init of video finder window
-		init_torrentlist_viewer(self.iface.getitem("TorrentList"))
+		ui.videotorrent_list_model\
+				.init_torrentlist_viewer(\
+				self.iface.getitem("TorrentList"))
 
 		## MPlayer subwindow		
 
-		# self.MPlayer=mplayer_slave.player(self.iface.getitem("VideoZone").window.xid)
-		# self.MPlayer=mplayer_slave.player(None) # self.iface.getitem("VideoZone").window.xid)
-		# logging.info ("XID :",self.iface.getitem("VideoZone").window.xid)
-		# self.payer_status=None
-		# CellRenderer
+# self.MPlayer = mplayer_slave.player(self.\
+		#iface.getitem("VideoZone").window.xid)
+# self.MPlayer = mplayer_slave.player(None) 
+# self.iface.getitem("VideoZone").window.xid)
+# logging.info ("XID :", self.iface.getitem("VideoZone").window.xid)
+# self.payer_status = None
 
-	def subtitle_comparison_function(self,model,column,key,iter,unknown = None):
-		text=model.get_value(iter, 0).text.lower()
-		if(re.match(r".*"+key,text,re.IGNORECASE)):
-			return False
-		return True
+		# Gio File watching handles
+		self.handle_file = None
+		self.handle_end = None
+		self.subtitle_downloader = None
+		self.monitor_serie = None # making an attribute to prevent gc
+		self.manager = None
 
-	def started_search(self,treeview):
-		logging.debug ("search started")
-		pass
 		
-	def subtitle_line_text_getter(self,column,cell,model,iter,unknown = None):
-		cell.set_property('text', model.get_value(iter, 0).text)
-		return 	
- 
-	def subtitle_begin_time_getter(self,column,cell,model,iter,unknown = None):
-		cell.set_property('text', unicode(model.get_value(iter, 0).start))
-		return
-		
-	def execute_play_command(self,cmd,cwd=None):
+	def execute_play_command(self, cmd, cwd = None):
+		""" Launches cmd command
+		and install monitors for finding when it stops and
+		when it outputs to avoid UI hangouts
+		"""
+
 		logging.debug("executing ... >>>{0}<<<".format(cmd))
-		process = subprocess.Popen(cmd, shell=False, bufsize=0, stdout=subprocess.PIPE,cwd=cwd)
-		self.currentProcess=process.stdout
+		process = subprocess.Popen(cmd, \
+				shell = False, bufsize = 0, stdout = subprocess.PIPE, cwd = cwd)
+		self.current_process = process.stdout
 		logging.debug("launched")
 		self.playing()
-		self.handle_file = GObject.io_add_watch(self.currentProcess,GObject.IO_HUP,self.end_of_play,priority=GObject.PRIORITY_DEFAULT_IDLE)
-		self.handle_end = GObject.io_add_watch(self.currentProcess,GObject.IO_IN,self.read,priority=GObject.PRIORITY_DEFAULT_IDLE)
-		self.currentProcess=process
+		self.handle_file = GObject.io_add_watch(
+				self.current_process, GObject.IO_HUP, 
+				self.end_of_play, priority = GObject.PRIORITY_DEFAULT_IDLE)
+		self.handle_end = GObject.io_add_watch(
+				self.current_process, GObject.IO_IN, 
+				self.read, priority = GObject.PRIORITY_DEFAULT_IDLE)
+		self.current_process = process
 
-	def read(self, widg, condition):
-		if self.currentProcess != None :
-			self.currentProcess.stdout.read(1000)
-			if self.currentProcess.poll() != None :
+	def read(self, widg, condition):#pylint: disable=W0613
+		""" Eats line from Mplayer process"""
+		if self.current_process != None :
+			self.current_process.stdout.read(1000)
+			if self.current_process.poll() != None :
 				pass
 			return True
 		else :
 			logging.debug("callback deletion")
 			return False
 
-	def play(self,widg):
-		logging.info("playing ... " + self.serieModel.getCurrentSerie().nom)
-		if self.currentProcess == None :
-			serie = self.serieModel.getCurrentSerie()
-			#logging.info (self.serieModel.getCurrentSerie().nom)
-			command=command_line_generator("serie_next")
-			chemin_serie=self.serieModel.getCurrentSerie().get_path_to_serie()
-			command.add_option_param("-s",unicode(serie.get_num_saison_courante()))
-			command.add_option_param("-e",unicode(serie.get_num_episode_courant()))
-			command.add_option_param("-G",unicode(serie.get_skip_time()))
-			command.add_option_param("-f",serie.get_fps())
-			command.add_option_param("-d",unicode(serie.get_decay_time()))
-			command.add_option_param("-t",unicode(serie.get_subtitle_file()))
-			os.environ["SEASON"]=self.serieModel.getCurrentSerie().nom
-			self.execute_play_command(command.get_command(),cwd=chemin_serie)
+	def play(self, widg):#pylint: disable=W0613
+		""" Callback when a play is requested
+		** Unused currently **, probably obsolete
+		Action : Launches 'play' script with current episode parameters"""
+		logging.info("playing ... " + self.serie_model.get_current_serie().nom)
+		if self.current_process == None :
+			serie = self.serie_model.get_current_serie()
+			#logging.info (self.serie_model.get_current_serie().nom)
+			command = CommandLineGenerator("serie_next")
+			chemin_serie = self.serie_model.get_current_serie().get_path_to_serie()
+			command.add_option_param("-s", unicode(serie.get_num_saison_courante()))
+			command.add_option_param("-e", unicode(serie.get_num_episode_courant()))
+			command.add_option_param("-G", unicode(serie.get_skip_time()))
+			command.add_option_param("-f", serie.get_fps())
+			command.add_option_param("-d", unicode(serie.get_decay_time()))
+			command.add_option_param("-t", unicode(serie.get_subtitle_file()))
+			os.environ["SEASON"] = self.serie_model.get_current_serie().nom
+			self.execute_play_command(command.get_command(), cwd = chemin_serie)
 	
-	def sub_selected(self,treeview, path, view_column):
-		pass
-
-	def end_of_play(self,widg,condition=None):
+	def end_of_play(self, widg, condition = None):#pylint: disable=W0613
+		""" Callbacks called when the MPlayer process stops
+		Action : reactivates buttons, 
+		launches UI updates for next episode, update models
+		"""
 		logging.info("end of play !")
 		map(lambda nom: 
 			self.iface.getitem(nom).set_sensitive(True),
-			self.playButtons)
-		self.currentProcess=None
+			self.play_buttons)
+		self.current_process = None
 		if not self.iface.getitem("SetupModeCheck").get_active():
-			self.serieModel.getCurrentSerie().episode_vu()
+			self.serie_model.get_current_serie().episode_vu()
 			self.update_serie()
-                GObject.source_remove(self.handle_file)
-                GObject.source_remove(self.handle_end)
+		GObject.source_remove(self.handle_file)
+		GObject.source_remove(self.handle_end)
 		return False	
-
-	def end_of_play_internal(self,obj):
-		logging.info("end_of_internal_play !")
-		if not self.iface.getitem("SetupModeCheck").get_active():
-			pass
 	
-	def play_with_sub(self,widg):
-		#if self.currentProcess == None :
+	def play_with_sub(self, widg):#pylint: disable=W0613
+		""" Callback when button is clicked
+		Actions
+		* Launches MPlayer, in a window,
+		* sets UI in playing mode
+		* installs end of play callbacks
+		"""
+
+		#if self.current_process == None :
 		#	self.execute_play_command(["series","-S"])
 		logging.info("playing in a slave MPlayer !!")
-		#if self.MPlayer == None:
-			# self.MPlayer=mplayer_slave.player(self.iface.getitem("VideoZone").window.xid)
-		#	self.MPlayer=mplayer_slave.player() #self.iface.getitem("VideoZone").window.xid)
-		#	pass
-		# else:
-		serie=self.serieModel.getCurrentSerie()
-		filename=serie.get_absolute_filename(serie.get_video_list()[0])
+#if self.MPlayer == None:
+	# self.MPlayer = mplayer_slave.player(\
+	#		self.iface.getitem("VideoZone").window.xid)
+#	self.MPlayer = mplayer_slave.player() 
+	#self.iface.getitem("VideoZone").window.xid)
+#	pass
+# else:
+		serie = self.serie_model.get_current_serie()
+		filename = serie.get_absolute_filename(serie.get_video_list()[0])
 		path = serie.get_path_to_current_season()
 		subfile = path + serie.get_subtitle_list()[0]
 		if filename != None :
-			command="loadfile \"%s\"" % (filename)
 			self.player_status.play(filename)
-			(width,height)=self.player_status.get_video_resolution()
-			logging.debug("size : {0}x{1}".format(width,height))
+			(width, height)= self.player_status.get_video_resolution()
+			logging.debug("size : {0}x{1}".format(width, height))
 			drawing_area = self.iface.getitem("VideoZone")
 			drawing_area.set_size_request(width, height)
-			gdkwindow = drawing_area.window
+			# gdkwindow = drawing_area.window
 			logging.debug("trying to go fullscreen ...")
-			new_window = Gtk.Window(Gtk.WINDOW_TOPLEVEL)
+			# new_window = Gtk.Window(Gtk.WINDOW_TOPLEVEL)
 			#new_window.fullscreen()
 			#drawing_area.set_parent_window(new_window.get_parent_window())
-			# self.player_status=Player_status(self.MPlayer)
+			# self.player_status = Player_status(self.MPlayer)
 			# self.player_status.play(filename)
-			self.player_status.set_playing()
-			self.player_status.set_subtitles(subfile)
-			self.player_status.connect("play_ended", self.end_of_play)
+			status = self.player_status
+			status.set_playing()
+			status.set_subtitles(subfile)
+			status.connect("play_ended", self.end_of_play)#pylint: disable = E1101
+		
 
-	def prompted_play(self,widg):
-		if self.currentProcess == None :
-			self.execute_play_command(["series","-p"])
+	#def prompted_play(self, widg):#pylint: disable=W0613
+	#	if self.current_process == None :
+	#		self.execute_play_command(["series","-p"])
 
-	def set_subdownloader(self,subdl):
+	def set_subdownloader(self, subdl):
+		"""Setter for subdownloader attribute"""
 		self.subtitle_downloader = subdl
 
-	def search_subtitles(self,btn):
+	def search_subtitles(self, btn):#pylint: disable=W0613
 		"""TODO : Upgrade to twisted
 		async method for findind subtitles
+		
+		Subtitles finders simply write results in current season directory
 		"""
 		logging.debug("searching ... in a thread")
-		chemin_serie=self.serieModel.getCurrentSerie().get_path_to_current_season()
-		nom_serie = self.serieModel
-		arguments=[self.serieModel,self.subtitle_downloader]
-		methode=thr_sub_dl		
-		self.subdl_worker = threading.Thread(name="thread_sub"+chemin_serie,args=arguments,target=methode)
-		self.subdl_worker.start()
+		chemin_serie = self.serie_model.get_current_serie()\
+				.get_path_to_current_season()
+		# nom_serie = self.serie_model
+		arguments = [self.serie_model, self.subtitle_downloader]
+		methode = thr_sub_dl		
+		subdl_worker = threading.Thread(\
+				name = "thread_sub"+chemin_serie, args = arguments, target = methode)
+		subdl_worker.start()
 		logging.debug("searching done ! ...")
 
-	def subtitle_seek(self,treeview,path,column):
-		(model,iter)=treeview.get_selection().get_selected()
-		time = model.get_value(iter, 0).start
+	def subtitle_seek(self, treeview, path, column):#pylint: disable=W0613
+		""" Callback when users wants to go to a subtitles instant in the video
+		Action : sends a seek command to MPLayer to the date of current selected
+		subtitle in subtitle view
+		"""
+		(model, itera)= treeview.get_selection().get_selected()
+		time = model.get_value(itera, 0).start
 		self.player_status.handle_seek(time)
 	
-	def subtitle_sync(self,button):
+	def subtitle_sync(self, button):#pylint: disable=W0613
+		""" Callback when user wants to decay subtitles to a current time
+
+		Action : sets the decay_subtitle value to MPLayer corresponding roughly 
+		to the difference beetween :
+		current time in the video, and selected subtitle time
+		"""
+		# getting datas
 		treeview = self.iface.getitem("SubtitlesTreeView")
-		(model,iter)=treeview.get_selection().get_selected()
-		time = model.get_value(iter, 0).start.ordinal / 1000
+		(model, itera)= treeview.get_selection().get_selected()
+		time = model.get_value(itera, 0).start.ordinal / 1000
 		in_video_time = self.player_status.get_current_time()
 		sub_delay = self.player_status.get_subtitles_delay()
+
+		# calculating 
 		delay = time - in_video_time
-		logging.info("time = {0} ; in video time = {1} ; sub_delay calculated = {}".format(time,in_video_time,sub_delay))
+		logging.info("time = {0} ; \
+				in video time = {1} ;\
+				sub_delay calculated = {}"
+				.format(time, in_video_time, sub_delay))
+
+		# sending command
 		self.player_status.set_subtitles_delay(delay)
 	
 	def playing(self):
+		""" Action function : sets the interface in playing mode """
 		map(lambda nom: 
-			self.iface.getitem(nom).set_sensitive(False), self.playButtons)
-		return ( self.currentProcess == None )
+			self.iface.getitem(nom).set_sensitive(False), self.play_buttons)
+		return ( self.current_process == None )
 	
 	def update_serie(self):
+		""" Callback when [lots of calls ]
+		Action : 
+		* Reads the current Store configuration to Serie Managers (current serie, ...)
+		* and sets up interface accordingly
+		"""
 		#if not self.numseason:
-		#	self.numseason=None
+		#	self.numseason = None
 
-		serie=(self.serieModel.getCurrentSerie())
-		newsaison=int(serie.get_num_saison_courante())
+		serie = (self.serie_model.get_current_serie())
+		newsaison = int(serie.get_num_saison_courante())
 		num = serie.get_num_episode_courant()
 		if num != None :
-			newep=int(serie.get_num_episode_courant())
+			newep = int(serie.get_num_episode_courant())
 		else:
-			newep=1
+			newep = 1
 		spin = self.iface.getitem("numSaisonSpin")
 		spin.set_value(newsaison)
 
@@ -290,146 +328,185 @@ class PlayEventManager:
 		self.iface.getitem("skipTimeSpin").set_value(serie.get_skip_time())
 		self.iface.getitem("decayTimeSpin").set_value(serie.get_decay_time())
 		# self.iface.getitem("FPSComboBox").get_child().set_text(serie.get_fps())
-		vid_list=serie.get_video_list()
+		vid_list = serie.get_video_list()
 		logging.info("Videos !!! nb:{}".format(len(vid_list)))
 		logging.info(vid_list)
 		if len (vid_list) > 0 and not (len(vid_list) == 1 and vid_list[0] == '' ) :
 			self.iface.getitem("NomficLabel").set_text(serie.get_video_list()[0])
 		else:
 			self.iface.getitem('')
-			ep = episode(serie,newsaison,num)
-			self.add_video_finder(ep)
+			episode = Episode(serie, newsaison, num)
+			self.add_video_finder(episode)
 		self.update_subs()
 	# def load_season(num_season):
 		
 	# def load_ep(num_ep)
-	def add_video_finder(self,ep):
-		logging.info("adding video finder for ep {0}...".format(ep))
-		finder = episode_video_finder(ep)
+	def add_video_finder(self, episode):
+		""" Ubuesque code cascade & design trigerring
+		"""
+		logging.info("adding video finder for ep {0}...".format(episode))
+		finder = episode_video_finder(episode)
 		window = self.iface.getitem("VideoSearchResultWindow")
 		candidates_view = self.iface.getitem("TorrentList")
- 		dl_button = self.iface.getitem("ChooseTorrent")
-		# finder.plop = False
+		dl_button = self.iface.getitem("ChooseTorrent")
 
-
-		def choose(plop):
-			logging.debug("chosen !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-			(model,iter) = candidates_view.get_selection().get_selected()
-			choice = model.get_value(iter,0)
-			logging.debug("{} {}".format(choice.filename,choice.magnet))
+		def choose(plop):#pylint: disable=W0613
+			""" Callback when the user has chosen
+			Action : triggers the dl_request
+			"""
+			(model, itera) = candidates_view.get_selection().get_selected()
+			choice = model.get_value(itera, 0)
+			logging.debug("{} {}".format(choice.filename, choice.magnet))
 			finder.on_chosen_launch_dl(choice)
 			
-			return model.get_value(iter,0)	
+			return choice	
 
-		def chosen(dl):
+		def chosen(dl_choice):
+			""" callback to hide window"""
 			window.hide()
-			return dl 
+			return dl_choice
 
 		def on_candidates_found(self):
+			""" Callback when results are back presents them
+			to the user """
 			candidates = finder.candidates
-			store = video_result_store(candidates)
+			store = VideoResultStore(candidates)
 			logging.debug("candidates ... {}".format(candidates_view))
 			candidates_view.set_model(store.get_model())
-			defe = OnEventDeferred(dl_button,"clicked")
-			defe.addCallback(choose).addCallback(chosen) #.addCallback(finder.on_chosen_launch_dl).addCallback(chosen)
-			#chose.
+			wait_for_click = OnEventDeferred(dl_button, "clicked")
+			wait_for_click.addCallback(choose).addCallback(chosen)
 			window.present()
 			
-		finder.connect("candidates_found",on_candidates_found)
-		finder.search_newep(ep)
+		finder.connect("candidates_found", on_candidates_found) #pylint: disable = E1101
+		finder.search_newep(episode)
 
-	def selected_serie_changed(self,widg):
-		itera=widg.get_active_iter()
+	def selected_serie_changed(self, widg):
+		"""Callback when selected UI série changes
+		Actions:
+		* updates the serie Model 
+		* then triggers UI update 
+		"""
+		itera = widg.get_active_iter()
 		if itera != None:
-			val = widg.get_model().get_value(widg.get_active_iter(),0)
-			self.serieModel.setCurrentSerieByName(val)
+			val = widg.get_model().get_value(widg.get_active_iter(), 0)
+			self.serie_model.setCurrentSerieByName(val)
 			self.update_serie()
 
 	def put_monitor_on_saison(self):
-		path = self.serieModel.getCurrentSerie().get_path_to_current_season()
-                self.monitor_serie = None
-                path = Gio.File.new_for_path(path)
-                if(path):
-                        self.monitor_serie = path.monitor_directory(Gio.FileMonitorFlags.NONE,None)
-                        self.monitor_serie.connect("changed",self.update_subs_and_file)
+		""" Set up monitoring of directory
+		* Installs monitors on current season directory
+		* Installs Callbacks on Season
 
-	def update_num_saison(self,widg):
+		Todo : Refactor to get a "Directory" Model class
+		"""
+		path = self.serie_model.get_current_serie().get_path_to_current_season()
+		self.monitor_serie = None
+		path = Gio.File.new_for_path(path)
+		if(path):
+			self.monitor_serie = path.monitor_directory(Gio.FileMonitorFlags.NONE, None)
+			self.monitor_serie.connect("changed", self.update_subs_and_file)
+
+	def update_num_saison(self, widg):
+		""" Callback when selected Season changes
+		Actions :
+			* update Model
+			* Triggers UI update
+			"""
 		logging.info("saison courante num changed ?")
-		self.serieModel.getCurrentSerie().set_num_saison_courante(int(widg.get_value()))
-		path = self.serieModel.getCurrentSerie().get_path_to_current_season()
+		self.serie_model.get_current_serie()\
+				.set_num_saison_courante(int(widg.get_value()))
 		self.update_serie()
 		self.put_monitor_on_saison()
 	
-	def update_num_episode(self,widg):
+	def update_num_episode(self, widg):
+		""" Callback When current episode changes
+		Actions :
+		* updates Model
+		* update UI accordingly
+		"""
 		logging.info("ep courante num changed ?")
-		self.serieModel.getCurrentSerie().set_num_episode_courant(int(widg.get_value()))
+		self.serie_model.get_current_serie()\
+				.set_num_episode_courant(int(widg.get_value()))
 		self.update_serie()
 	
-	def update_skip_time(self,widg):
+	def update_skip_time(self, widg):
+		""" Callbacks when user updates the skip time
+		Action : 
+		* updates Model 
+		"""
 		logging.info("skip time changed ?")
-		self.serieModel.getCurrentSerie().set_skip_time(int(widg.get_value()))
+		self.serie_model.get_current_serie().set_skip_time(int(widg.get_value()))
 
-	def update_decay_time(self,widg):
-		logging.info("decay time changed ? ",widg.get_value())
+	def update_decay_time(self, widg):
+		""" Callback when decay time changes
+		Actions: 
+		* updates Model
+		"""
+		logging.info("decay time changed ? {}".format(widg.get_value()))
 		
-		self.serieModel.getCurrentSerie().set_decay_time(int(widg.get_value()))
+		self.serie_model.get_current_serie().set_decay_time(int(widg.get_value()))
 
-	def update_fps(self,widg):
+	def update_fps(self, widg):
+		""" Callback when User changes the FPS value on the view
+		Action : updates Model
+		"""
 		logging.info("fps time changed ?")
-		entry=widg.get_child()
+		entry = widg.get_child()
 		val = entry.get_text() 
 		logging.info("changed" + val )
-		self.serieModel.getCurrentSerie().set_fps(val)
+		self.serie_model.get_current_serie().set_fps(val)
 
-	def update_subtitle_file(self,widg):
-		itera=widg.get_active_iter()
-		# logging.info(type(itera),itera)
+	def update_subtitle_file(self, widg):
+		""" Callback when user changes selected subtitle file
+		Action : updates Model
+		"""
+		itera = widg.get_active_iter()
+		# logging.info(type(itera), itera)
 		if itera != None:
-			val = widg.get_model().get_value(widg.get_active_iter(),0)
-			self.serieModel.getCurrentSerie().set_subtitle_file(val)
-			absolute_subfile=os.path.join(self.serieModel.getCurrentSerie().get_path_to_current_season(),val)
-			self.subtitle_file_model=ui.subtitles.SubtitlesStore(absolute_subfile)
-			self.iface.getitem("SubtitlesTreeView").set_model(self.subtitle_file_model.get_model())
+			val = widg.get_model().get_value(widg.get_active_iter(), 0)
+			self.serie_model.get_current_serie().set_subtitle_file(val)
+			
+			absolute_subfile = os.path.join(
+					self.serie_model\
+							.get_current_serie()\
+							.get_path_to_current_season(),
+					val)
+			
+			subtitle_file_model = ui.subtitles.SubtitlesStore(absolute_subfile)
+			self.iface.getitem("SubtitlesTreeView")\
+					.set_model(subtitle_file_model.get_model())
 
 	def update_subs(self):
-		liste=self.serieModel.getCurrentSerie().get_subtitle_list()
+		""" Callback The available subtitles are modified 
+		Action : updates Model, updtates ui
+		"""
+		liste = self.serie_model.get_current_serie().get_subtitle_list()
 		logging.info("Subs !! nb:{}".format(len(liste)))
 		if len(liste)== 1 and liste[0]=='':
 			self.search_subtitles(None)
-		self.populate_combo_with_items(self.iface.getitem("CandidateSubsCombo"),liste)
+		ui.utils.populate_combo_with_items(
+				self.iface.getitem("CandidateSubsCombo"), 
+				liste)
 		self.update_subtitle_file(self.iface.getitem("CandidateSubsCombo"))		
 
-	def populate_combo_with_items(self,combo,items):
-		ls = None
-		if combo.get_model() != None:
-			ls=combo.get_model()
-			ls.clear()
-		else:
-			ls=Gtk.ListStore(str)
-			cellr = Gtk.CellRendererText()
-			combo.set_model(ls)	
-			combo.pack_start(cellr,True)
-			combo.add_attribute(cellr, 'text', 0)
-			combo.set_active(0)
-		
-		for i in items:
-			logging.info("populating with {0}".format(i)) 
-			ls.append([str(i)])
-
-		combo.set_active(0)
-		return combo
-
-	def end(self,widg):
+	def end(self, widg):
+		""" Callback to clean application & exit 
+		TODO : is currently deactivated, needs to be debuged """
 		self.player_status.end_player()
 		Gtk.main_quit(widg)
 
-	def video_keypress(self,widgi,event):
+	def video_keypress(self, widgi, event):#pylint: disable=W0613
+		""" Callback intended to send key events to MPlayer 
+		when in a subwindow on the UI
+		TODO : Currently unused, needs a branch.
+		"""
 		logging.info(event.hardware_keycode)
 		logging.info("keypressed")
 		# logging.info(keyval)
 
 	def set_manager(self, man):
-		self.manager=man
+		""" Setter for the main Available Séries manager """
+		self.manager = man
 		
 class App:
 	"""This is an Hello World GTK application"""
@@ -442,65 +519,82 @@ class App:
 		builder = Gtk.Builder()
 		builder.add_from_file(self.gladefile)
 
-		#self.wTree = Gtk.glade.XML(self.gladefile) 
-		self.wTree = builder # .get_object(MainWindow") 
+		#self.widg_tree = Gtk.glade.XML(self.gladefile) 
+		self.widg_tree = builder # .get_object(MainWindow") 
 		
 		self.bashmanager = SeriesManager()
 	
 		bash_factory = BashManagedSerieFactory(self.bashmanager)
 
-		serieList = self.bashmanager.get_serie_list()
+		serie_list = self.bashmanager.get_serie_list()
 
 		logging.info("creating serie manager")
 		self.series = bash_factory.create_serie_manager()
 		logging.info("created serie manager")
 		
-		serieList.insert(0,self.bashmanager.get_current_serie());
-		self.eventMgr=PlayEventManager(self,self.Series)
-		self.eventMgr.populate_combo_with_items(self.getitem("SerieListCombo"), serieList)
+		serie_list.insert(0, self.bashmanager.get_current_serie())
+		self.event_mgr = PlayEventManager(self, self.series)#pylint: disable = E1101
+		ui.utils.populate_combo_with_items(self.getitem("SerieListCombo"), serie_list)
 		subdl = subdownloader_subdownloader()
-		# subdl=None
-		self.eventMgr.set_subdownloader(subdl)
-		self.eventMgr.set_manager(self.bashmanager)
-		self.eventMgr.update_serie()
-		self.eventMgr.put_monitor_on_saison()
+		# subdl = None
+		self.event_mgr.set_subdownloader(subdl)
+		self.event_mgr.set_manager(self.bashmanager)
+		self.event_mgr.update_serie()
+		self.event_mgr.put_monitor_on_saison()
 		
-		dic = { "on_Play_clicked" : self.eventMgr.play,
-			"on_SlaveMplayerPlay_clicked" : self.eventMgr.play_with_sub,
-			"on_PromptedPlay_clicked" : self.eventMgr.prompted_play,
-			"on_SerieListCombo_changed" : self.eventMgr.selected_serie_changed,
+		dic = { "on_Play_clicked" : self.event_mgr.play,
+			"on_SlaveMplayerPlay_clicked" : \
+					self.event_mgr.play_with_sub,
+			# "on_PromptedPlay_clicked" : self.event_mgr.prompted_play,
+			"on_SerieListCombo_changed" : \
+					self.event_mgr.selected_serie_changed,
 			# "on_MainWindow_destroy" : self.end,
-			"on_numSaisonSpin_value_changed" : self.eventMgr.update_num_saison,
-			"on_numEpSpin_value_changed" : self.eventMgr.update_num_episode,
-			"on_skipTimeSpin_value_changed" : self.eventMgr.update_skip_time,
-			"on_decayTimeSpin_value_changed" : self.eventMgr.update_decay_time,
-			# "on_FPSComboBox_changed": self.eventMgr.update_fps,
-			"on_CandidateSubsCombo_changed": self.eventMgr.update_subtitle_file,
-			"video_keypress": self.eventMgr.video_keypress,
-			"on_SubtitlesTreeView_row_activated": self.eventMgr.subtitle_seek ,
-			"on_Synchro_Button_pressed": self.eventMgr.subtitle_sync , 
-			"on_SubtitlesTreeView_start_interactive_search" : self.eventMgr.started_search,
-			"on_OpenRep_clicked":self.eventMgr.open_filemanager,
-			"on_DlSub_clicked":self.eventMgr.search_subtitles
+			"on_numSaisonSpin_value_changed" : \
+					self.event_mgr.update_num_saison,
+			"on_numEpSpin_value_changed" : self.event_mgr.update_num_episode,
+			"on_skipTimeSpin_value_changed" : \
+					self.event_mgr.update_skip_time,
+			"on_decayTimeSpin_value_changed" : \
+					self.event_mgr.update_decay_time,
+			# "on_FPSComboBox_changed": self.event_mgr.update_fps,
+			"on_CandidateSubsCombo_changed": \
+					self.event_mgr.update_subtitle_file,
+			"video_keypress": self.event_mgr.video_keypress,
+			"on_SubtitlesTreeView_row_activated": \
+					self.event_mgr.subtitle_seek ,
+			"on_Synchro_Button_pressed": \
+					self.event_mgr.subtitle_sync , 
+			"on_SubtitlesTreeView_start_interactive_search" : \
+					ui.subtitles.started_search,
+			"on_OpenRep_clicked": \
+					self.event_mgr.open_filemanager,
+			"on_DlSub_clicked": \
+					self.event_mgr.search_subtitles
 			
 		}
 
-		# self.window = self.wTree.get_widget("MainWindow")
-		self.window = self.wTree.get_object("MainWindow")
+		# self.window = self.widg_tree.get_widget("MainWindow")
+		self.window = self.widg_tree.get_object("MainWindow")
 		
-		# self.wTree.signal_autoconnect(dic)
-		self.wTree.connect_signals(dic)
+		# self.widg_tree.signal_autoconnect(dic)
+		self.widg_tree.connect_signals(dic)
 		
 		if (self.window):
-			self.window.connect("destroy", self.eventMgr.end )
+			self.window.connect("destroy", self.event_mgr.end )
 		else:
 			logging.info ("Pas trouvé")
 
 	def getitem(self, key):
-        	#return self.wTree.get_widget(key)
-        	return self.wTree.get_object(key)
+		""" Utility function, get a widget from is string ID """
+        	#return self.widg_tree.get_widget(key)
+		return self.widg_tree.get_object(key)
+
+def main():
+	""" Main function for script """
+	app = App()
+	logging.debug("App constructed {}".format(app))
+	#Gtk.main()
+	reactor.run()#pylint: disable = E1101
 
 if __name__ == "__main__":
-	hwg = App()
-	#Gtk.main()
-	reactor.run()
+	main()

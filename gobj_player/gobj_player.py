@@ -12,17 +12,17 @@ from logging import debug, info
 
 from decorator import decorator
 
-from gobj_player.mplayer_slave import MPlayerSlave
+from mplayer_slave import MPlayerSlave
 
-@decorator
+# @decorator
 def command_sender(func):
 	""" decorator for catching and watching 
 	state changes of slave, restarting in case of non answers
 	"""
-	def wrapper(*args, **kwargs):
+	def wrapper(self,*args, **kwargs):
 		""" the real wrapper """ 
 		try:
-			result = func(*args, **kwargs)
+			result = func(self,*args, **kwargs)
 
 		except IOError:
 			args[0].player.__init__()

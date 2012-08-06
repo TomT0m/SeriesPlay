@@ -3,7 +3,7 @@
 """ subtitle management class """
 
 from gi.repository import Gtk #pylint: disable=E0611
-import os
+import re, os
 from pysrt import SubRipFile#, SubRipItem, SubRipTime
 
 from logging import info, debug
@@ -42,3 +42,23 @@ class SubtitlesStore:
 		return self.model
 
 
+def subtitle_comparison_function(model, column, key, ite, unknown = None):#pylint: disable=W0613
+	""" returns True if string is in subtitle"""
+	text = model.get_value(iter, 0).text.lower()
+	if(re.match(r".*"+key, text, re.IGNORECASE)):
+		return False
+	return True
+
+def started_search(treeview):#pylint: disable=W0613
+	""" useless function, to delete ?"""
+	debug ("search started")
+	
+def subtitle_line_text_getter(column, cell, model, ite, unknown = None):#pylint: disable=W0613
+	""" Gets the text to show in corresponding column"""
+	cell.set_property('text', model.get_value(iter, 0).text)
+	return 	
+
+def subtitle_begin_time_getter(column, cell, model, ite, unknown = None):#pylint: disable=W0613
+	""" Gets the time to show in corresponding column"""
+	cell.set_property('text', unicode(model.get_value(ite, 0).start))
+	return
