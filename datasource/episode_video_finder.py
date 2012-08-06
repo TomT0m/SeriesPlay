@@ -13,7 +13,7 @@ from logging import info, debug
 
 from datasource import dl_manager
 from datasource import play_tpb_search
-from utils.messages import message_encoder
+from utils.messages import MessageEncoder
 
 class EpisodeVideoFinder(GObject.GObject):
 	""" 
@@ -112,7 +112,7 @@ class EpisodeFinderServer(NetstringReceiver):
 	def __init__(self):
 		debug("building episode finder")
 		self.state = "wait_episode"
-		self.encoder = message_encoder()
+		self.encoder = MessageEncoder()
 		self.episode_video_finder = None
 
 	def doStart(self): #pylint: disable=C0103

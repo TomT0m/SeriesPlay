@@ -388,7 +388,7 @@ class PlayEventManager:
 			val = widg.get_model().get_value(widg.get_active_iter(),0)
 			self.serieModel.getCurrentSerie().set_subtitle_file(val)
 			absolute_subfile=os.path.join(self.serieModel.getCurrentSerie().get_path_to_current_season(),val)
-			self.subtitle_file_model=ui.subtitles.subtitles_store(absolute_subfile)
+			self.subtitle_file_model=ui.subtitles.SubtitlesStore(absolute_subfile)
 			self.iface.getitem("SubtitlesTreeView").set_model(self.subtitle_file_model.get_model())
 
 	def update_subs(self):

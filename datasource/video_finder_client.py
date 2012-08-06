@@ -10,7 +10,7 @@ from twisted.protocols.basic import NetstringReceiver
 #from twisted.internet.endpoints import *
 from twisted.internet.endpoints import TCP4ClientEndpoint #point
 
-from utils.messages import message_encoder
+from utils.messages import MessageEncoder
 
 import logging
 from logging import info, debug
@@ -19,7 +19,7 @@ from logging import info, debug
 class EpisodeFinderClientProtocol(NetstringReceiver):
 	""" Twisted Protocol implementation """
 	def __init__(self):
-		self.encoder = message_encoder()
+		self.encoder = MessageEncoder()
 		self.defer = defer
 		self.state = "init"
 		self.defer_search_results = None

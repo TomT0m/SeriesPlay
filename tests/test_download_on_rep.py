@@ -43,14 +43,14 @@ class testOnEventDeferred(unittest.TestCase):
 #	@expectedFailure
 	def testError(self): 
 		obj = gobj()
-		defe = OnEventDeferred(obj,"ok")
-		defe.add_error_event(obj,"error")
+		defe = OnEventDeferred(obj, "ok")
+		defe.add_error_event(obj, "error")
 		obj.emit("error")
 		return defe.addCallbacks(self.fail, self.assertIsInstance, errbackArgs=(Failure,))
 	def testCleanup(self):
 		obj = gobj()
-		defe = OnEventDeferred(obj,"ok")
-		defe.clean()
+		defe = OnEventDeferred(obj, "ok")
+		defe._clean()
 
 
 

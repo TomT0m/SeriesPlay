@@ -16,7 +16,6 @@ class VideoResultStore(object):
 			self.model = model
 
 		for candidate in candidates:
-			print "appending res to model"
 			self.model.append([candidate, candidate.filename])
 
 	def get_model(self):
@@ -24,7 +23,8 @@ class VideoResultStore(object):
 		return self.model
 
 
-def filename_text_getter(column, cell, model, itera, unknown = None):
+def filename_text_getter(column, cell, model, itera, unknown = None):\
+		#pylint: disable=W0613
 	""" Data getter function for the filename column"""
 	# print model
 	# print 'getter called'
@@ -32,12 +32,14 @@ def filename_text_getter(column, cell, model, itera, unknown = None):
 	# import pdb ; pdb.set_trace()
 	cell.set_property('text', model.get_value(itera, 0).filename)
 
-def leechers_text_getter(column, cell, model, itera, unknown = None):
+def leechers_text_getter(column, cell, model, itera, unknown = None):\
+		#pylint: disable=W0613
 	""" Data getter function for the llechers numbers column"""
 	value = model.get_value(itera, 0).leechers
 	cell.set_property('markup', "<i>{}</i>".format(value))
 	
-def filesize_text_getter(column, cell, model, itera, unknown=None):
+def filesize_text_getter(column, cell, model, itera, unknown=None):\
+		#pylint: disable=W0613
 	""" Data getter function for the filesize column"""
 	value = model.get_value(itera, 0).filesize
 	cell.set_property('text', u"{}".format(value))
@@ -67,5 +69,4 @@ def init_torrentlist_viewer(viewer):
 	filesize_column.set_cell_data_func(filesize_renderer, filesize_text_getter)
 
 	viewer.append_column(filesize_column)
-
 
