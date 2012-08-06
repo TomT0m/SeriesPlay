@@ -1,0 +1,2 @@
+""" Serie managing module """
+

@@ -21,7 +21,7 @@ class MPlayerSlave:
 			Exception.__init__(self, msg)	
 
 	def __init__(self, vid=None):
-		command = cli.command_line_generator("mplayer")
+		command = cli.CommandLineGenerator("mplayer")
 		command.add_option_single("-slave")
 		command.add_option_single("-quiet")
 		command.add_option_single("-idle")

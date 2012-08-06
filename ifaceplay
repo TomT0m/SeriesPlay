@@ -25,15 +25,15 @@ from twisted.internet import reactor
 from gobj_player import *
 from gobj_player.gobj_player import * 
 from datasource.play_subdl import TVsubtitlesSubdownloader as subdownloader_subdownloader 
-from datasource.video_finder_client import network_episode_video_finder as episode_video_finder
+from datasource.video_finder_client import NetworkEpisodeVideoFinder as episode_video_finder
 from utils.on_event_deferred import *
 
 import ui
 from ui import subtitles
 from ui.videotorrent_list_model import * # video_result_store
 import utils.cli
-from utils.cli import command_executer, command_line_generator, config_manager
-from serie.serie_manager import seriesManager, bashManagedEpisode, bashManagedSerie, bashManagedSeriesData, bashManagedSerieFactory, episode
+from utils.cli import CommandExecuter, CommandLineGenerator, ConfigManager
+from serie.serie_manager import SeriesManager, BashManagedEpisode, BashManagedSerie, BashManagedSeriesData, BashManagedSerieFactory, Episode
 
 import logging
 
@@ -230,7 +230,7 @@ class PlayEventManager:
 			# self.player_status.play(filename)
 			self.player_status.set_playing()
 			self.player_status.set_subtitles(subfile)
-			self.player_status.connect("play_ended",self.end_of_play)
+			self.player_status.connect("play_ended", self.end_of_play)
 
 	def prompted_play(self,widg):
 		if self.currentProcess == None :
@@ -370,7 +370,7 @@ class PlayEventManager:
 		self.serieModel.getCurrentSerie().set_skip_time(int(widg.get_value()))
 
 	def update_decay_time(self,widg):
-		logging.info("decay time changed ? ",(widg.get_value()))
+		logging.info("decay time changed ? ",widg.get_value())
 		
 		self.serieModel.getCurrentSerie().set_decay_time(int(widg.get_value()))
 
@@ -445,14 +445,14 @@ class App:
 		#self.wTree = Gtk.glade.XML(self.gladefile) 
 		self.wTree = builder # .get_object(MainWindow") 
 		
-		self.bashmanager = seriesManager()
+		self.bashmanager = SeriesManager()
 	
-		bash_factory = bashManagedSerieFactory(self.bashmanager)
+		bash_factory = BashManagedSerieFactory(self.bashmanager)
 
 		serieList = self.bashmanager.get_serie_list()
 
 		logging.info("creating serie manager")
-		self.Series = bash_factory.createSerieManager()
+		self.series = bash_factory.create_serie_manager()
 		logging.info("created serie manager")
 		
 		serieList.insert(0,self.bashmanager.get_current_serie());

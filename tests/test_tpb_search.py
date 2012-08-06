@@ -1,10 +1,11 @@
 #!/usr/bin/python
 #encoding:utf-8
+""" Unittest for TPB magnet search module"""
 
 from twisted.trial import unittest
-from datasource.play_tpb_search import *
+from datasource.play_tpb_search import TPBMagnetFinder, ConnectionException #*
 
-sample_html="""
+__sample_html__ = """
 <!DOCTYPE html PUBLIC "-W3CDTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" >
 <head>
@@ -388,28 +389,45 @@ clicksor_text_link_color = ''; clicksor_enable_text_link = false;
 </html>
 """
 class TestTpbSearch(unittest.TestCase):
-	def setUp(self):
+	""" Standard search testCase """
+	def setUp(self): #pylint: disable=C0103
+		""" setting Up, just creating the finder once"""
 		self.finder = TPBMagnetFinder()
 
 	def test_pattern(self):
-		sample_name="Pouet S01E13.avi"
-		self.assertTrue(self.finder.get_pattern(1,13) in sample_name)
-		self.assertFalse(self.finder.get_pattern(2,13) in sample_name)
+		""" Simple pattern creation test"""
+		sample_name = "Pouet S01E13.avi"
+		self.assertTrue(self.finder.get_pattern(1, 13) in sample_name)
+		self.assertFalse(self.finder.get_pattern(2, 13) in sample_name)
 
 	def test_extraction(self):
-		results=self.finder.extract_table_result(sample_html)
+		""" Test parsing a sample result HTML and verifying
+		the extracted informations are corrects
+		"""
+		results = self.finder.extract_table_result(__sample_html__)
 		self.assertTrue(results != None)
 		self.assertTrue(len(results) == 6)
 		#print("Found: {}\n".format(results[0].filename))
 		#print("Found magnet: {}\n".format(results[0].magnet))
-		self.assertTrue(results[0].filename=="Dirty Sexy Money S02E07 The Summer House HDTV XviD-FQM [eztv]")
-		self.assertTrue(results[0].magnet=="magnet:?xt=urn:btih:038afcbf064655596d0500af2b74ebddf731bd5d&dn=Dirty+Sexy+Money+S02E07+The+Summer+House+HDTV+XviD-FQM+%5Beztv%5D&tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A80&tr=udp%3A%2F%2Ftracker.publicbt.com%3A80&tr=udp%3A%2F%2Ftracker.istole.it%3A6969&tr=udp%3A%2F%2Ftracker.ccc.de%3A80")
-		self.assertTrue(results[0].leechers==7)
+		wanted_name = "Dirty Sexy Money S02E07 The Summer House HDTV XviD-FQM [eztv]"
+		wanted_magnet = "magnet:?xt=urn:btih:038afcbf064655596d0500af2\
+b74ebddf731bd5d&dn=Dirty+Sexy+Money+S02E07+The+Summer+House+HDTV+XviD-FQM+%5Be\
+ztv%5D&tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A80&tr=udp%3A%2F%2Ftracker.p\
+ublicbt.com%3A80&tr=udp%3A%2F%2Ftracker.istole.it%3A6969&tr=udp%3A%2F%2Ftracke\
+r.ccc.de%3A80"
+		self.assertTrue(results[0].filename == wanted_name)
+		self.assertTrue(results[0].magnet == wanted_magnet)
+		self.assertTrue(results[0].leechers == 7)
 
 	def test_invalid_server(self):
-		self.finder.server="invalid.invalid"
-		self.assertRaises(ConnectionException,self.request)
+		""" Test a ConnectionException """
+		self.finder.server = "invalid.invalid"
+		self.assertRaises(ConnectionException, self.request)
 		#self.finder.get_candidates("plop",1,2)	
 		
 	def request(self):
-		self.finder.get_candidates("plop",1,2)	
+		""" ??? Tests the entire process, with real 
+		Connection to the server
+		"""
+		self.finder.get_candidates("plop", 1, 2)
+
