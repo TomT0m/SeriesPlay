@@ -194,7 +194,7 @@ class PlayEventManager:
 			self.play_buttons)
 		self.current_process = None
 		if not self.iface.getitem("SetupModeCheck").get_active():
-			self.serie_model.get_current_serie().episode_vu()
+			self.serie_model.get_current_serie().on_seen_episode()
 			self.update_serie()
 		GObject.source_remove(self.handle_file)
 		GObject.source_remove(self.handle_end)

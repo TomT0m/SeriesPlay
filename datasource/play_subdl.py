@@ -15,12 +15,12 @@ Téléchargment des sous-titres dans un thread
 	info("thr method : calling")
 	serie = model.get_current_serie()
 	
-	nom = serie.nom
+	nom = serie.name
 	path = serie.get_path_to_current_season()
 	numep = serie.get_num_episode_courant()
 	numsais = serie.get_num_saison_courante()
 	
-	subdl.get_for_ep(serie.nom, numsais, numep, path) 
+	subdl.get_for_ep(serie.name, numsais, numep, path) 
 
 class Subdownloader(object):
 	""" Base class for a subdownloader

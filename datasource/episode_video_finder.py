@@ -49,8 +49,8 @@ class EpisodeVideoFinder(GObject.GObject):
 
 		finder = play_tpb_search.TPBMagnetFinder()
 		when_found = threads.deferToThread(finder.get_candidates, \
-				episode.serie.nom, \
-				episode.num_saison, \
+				episode.serie.name, \
+				episode.season_num, \
 				episode.num_ep)
 
 		debug("adding callbacks for searching new eps")
@@ -82,7 +82,7 @@ class EpisodeVideoFinder(GObject.GObject):
 		adder = dl_manager.DelugeDlAdder(host="localhost") 
 
 		info("download link ?")	
-		dl_path = self.episode.serie.get_path_to_season(self.episode.num_saison)
+		dl_path = self.episode.serie.get_path_to_season(self.episode.season_num)
 		info("dl_path : {}".format(dl_path))
 		info("____________")
 

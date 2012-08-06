@@ -35,7 +35,7 @@ class DummySeriesManager(SeriesManager):
 	def get_path_to_current_season(self):
 		return os.path.join(self.get_path_to_serie(), "saison6")
 
-	def get_path_to_current_season_of_serie(self, name):
+	def get_path_to_current_season_of(self, name):
 		return os.path.join(self.get_absolute_path(), "Dexter", "saison6")
 	
 	def get_path_to_season(self, nom, numsaison):
@@ -64,7 +64,7 @@ class DummySeriesManager(SeriesManager):
 	def get_current_serie(self):
 		return "Dexter"
 
-	def get_num_current_saison(self, nom):
+	def get_num_current_season(self, nom):
 		return 6
 
 	# @trace
