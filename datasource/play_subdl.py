@@ -17,8 +17,8 @@ Téléchargment des sous-titres dans un thread
 	
 	nom = serie.name
 	path = serie.get_path_to_current_season()
-	numep = serie.get_num_episode_courant()
-	numsais = serie.get_num_saison_courante()
+	numep = serie.get_current_episode_number()
+	numsais = serie.get_current_season_number()
 	
 	subdl.get_for_ep(serie.name, numsais, numep, path) 
 

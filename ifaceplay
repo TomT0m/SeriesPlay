@@ -167,7 +167,7 @@ class PlayEventManager:
 		""" Callback when a play is requested
 		** Unused currently **, probably obsolete
 		Action : Launches 'play' script with current episode parameters"""
-		logging.info("playing ... " + self.serie_model.get_current_serie().nom)
+		logging.info("playing ... " + self.serie_model.get_current_serie().name)
 		if self.current_process == None :
 			serie = self.serie_model.get_current_serie()
 			#logging.info (self.serie_model.get_current_serie().nom)
@@ -179,7 +179,7 @@ class PlayEventManager:
 			command.add_option_param("-f", serie.get_fps())
 			command.add_option_param("-d", unicode(serie.get_decay_time()))
 			command.add_option_param("-t", unicode(serie.get_subtitle_file()))
-			os.environ["SEASON"] = self.serie_model.get_current_serie().nom
+			os.environ["SEASON"] = self.serie_model.get_current_serie().name
 			self.execute_play_command(command.get_command(), cwd = chemin_serie)
 	
 	def end_of_play(self, widg, condition = None):#pylint: disable=W0613
@@ -376,7 +376,9 @@ class PlayEventManager:
 			wait_for_click.addCallback(choose).addCallback(chosen)
 			window.present()
 			
-		finder.connect("candidates_found", on_candidates_found) #pylint: disable = E1101
+		finder.connect("candidates_found", #pylint: disable = E1101
+				on_candidates_found)
+
 		finder.search_newep(episode)
 
 	def selected_serie_changed(self, widg):
@@ -413,7 +415,7 @@ class PlayEventManager:
 			"""
 		logging.info("saison courante num changed ?")
 		self.serie_model.get_current_serie()\
-				.set_num_saison_courante(int(widg.get_value()))
+				.set_current_season_number(int(widg.get_value()))
 		self.update_serie()
 		self.put_monitor_on_saison()
 	
@@ -425,7 +427,7 @@ class PlayEventManager:
 		"""
 		logging.info("ep courante num changed ?")
 		self.serie_model.get_current_serie()\
-				.set_num_episode_courant(int(widg.get_value()))
+				.set_current_episode_number(int(widg.get_value()))
 		self.update_serie()
 	
 	def update_skip_time(self, widg):
