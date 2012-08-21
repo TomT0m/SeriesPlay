@@ -42,8 +42,7 @@ class PlayEventManager:
 	data updating functions
 	"""
 
-	def update_serie_list(self, monitor, fichier, data, event):\
-			#pylint: disable=W0613
+	def update_serie_list(self, monitor, fichier, data, event): #pylint: disable=W0613
 		""" Callbacks when a new file is added in the Serie directory,
 		Action : updates the Serie Combo
 		"""
@@ -174,8 +173,8 @@ class PlayEventManager:
 			#logging.info (self.serie_model.get_current_serie().nom)
 			command = CommandLineGenerator("serie_next")
 			chemin_serie = self.serie_model.get_current_serie().get_path_to_serie()
-			command.add_option_param("-s", unicode(serie.get_num_saison_courante()))
-			command.add_option_param("-e", unicode(serie.get_num_episode_courant()))
+			command.add_option_param("-s", unicode(serie.get_current_season_number()))
+			command.add_option_param("-e", unicode(serie.get_current_episode_number()))
 			command.add_option_param("-G", unicode(serie.get_skip_time()))
 			command.add_option_param("-f", serie.get_fps())
 			command.add_option_param("-d", unicode(serie.get_decay_time()))
@@ -315,10 +314,10 @@ class PlayEventManager:
 		#	self.numseason = None
 
 		serie = (self.serie_model.get_current_serie())
-		newsaison = int(serie.get_num_saison_courante())
-		num = serie.get_num_episode_courant()
+		newsaison = int(serie.get_current_season_number())
+		num = serie.get_current_episode_number()
 		if num != None :
-			newep = int(serie.get_num_episode_courant())
+			newep = num 
 		else:
 			newep = 1
 		spin = self.iface.getitem("numSaisonSpin")

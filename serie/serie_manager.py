@@ -268,15 +268,15 @@ class Serie:
 		""" Current season getter"""
 		return self.season_num
 
-	def get_num_episode_courant(self):
+	def get_current_episode_number(self):
 		""" Current episode getter"""
 		return self.num_episode
 
-	def set_season_num_courante(self, num):
+	def set_current_season_number(self, num):
 		""" Current season setter"""
 		self.season_num = num
 
-	def set_num_episode_courant(self, num):
+	def set_current_episode_number(self, num):
 		""" Current episode setter"""
 		self.num_episode = num
 
@@ -404,15 +404,15 @@ class BashManagedSerie(Serie):
 				self.name)
 
         
-	def set_season_num_courante(self, num):
+	def set_current_season_number(self, num):
 		if not isinstance(num, numbers.Number):
 			raise ValueError(num)
 
-		Serie.set_season_num_courante(self, num)
-		self.set_num_episode_courant(self.get_lastseen_ep_in_season(num))
+		Serie.set_current_season_number(self, num)
+		self.set_current_episode_number(self.get_lastseen_ep_in_season(num))
 
-	def set_num_episode_courant(self, num):	
-		Serie.set_num_episode_courant(self, num)
+	def set_current_episode_number(self, num):	
+		Serie.set_current_episode_number(self, num)
 		debug("setting num ep courant")
 		nomfic = self.get_current_season_configfile()
 		skip = decay = 0

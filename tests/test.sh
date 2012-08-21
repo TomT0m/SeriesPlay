@@ -4,17 +4,18 @@ export PATH="$PATH:./bash"
 
 cd ..
 
-#python -m unittest discover
-#echo $# ; exit
+tests_dir="tests/"
+
+args=("$@")
 
 
 if [ "$#" == "0" ] ; then
-	trial -r gi tests/test*.py
+	trial -r gi "$tests_dir"/test*.py
 else
 	tests=("$@")
 	args=()
 	for index in ${!tests[*]}; do
-		args[$index]="tests/${tests[$index]}"
+		args[$index]="$tests_dir/${tests[$index]}"
 	done
 	trial -r gi "${args[@]}"
 fi

@@ -24,8 +24,23 @@ import twisted.web.client
 from utils.cli import CommandExecuter, CommandLineGenerator
 from gobj_player import gobj_player, mplayer_slave
 
-def get_video():
 
+def get_subtitle( second ):
+	""" Gets a sample subtitle srt string for @second """
+	template = """
+{0}
+00:00:{0:2d},000 --> 00:00:{1:2d},230
+{0} to {1}
+"""
+	return template.format(second, second+1) 
+
+def get_subtitle_string( seconds ):
+	""" constructs a sample "srt formated" string subtitles """
+	subs = [get_subtitle(second) for second in range(0, seconds) ] 
+	return ''.join(subs)
+
+def get_video():
+	""" downloads a sample video if none downloading"""
 	wait_for_end = None # defer.Deferred()
 	print(__VideoPath__)
 	if not os.path.exists(__VideoPath__):
@@ -61,6 +76,7 @@ class MplayerSlaveTester(unittest.TestCase):
 		return True
 
 	def test_mplayer_slave(self):
+		""" Tests for a slave mplayer launching """
 		test_slave = mplayer_slave.MPlayerSlave()
 		# test_slave.get_property("status")
 
@@ -76,5 +92,7 @@ class GobjPlayerTester(unittest.TestCase):
 
 	# def watch_propert()
 	def test_creation(self):
+		""" test of object creation  """
 		status = gobj_player.PlayerStatus()
+		status.end_player()
 
