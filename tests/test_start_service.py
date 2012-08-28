@@ -7,7 +7,7 @@ from gi.repository import GObject, DBus
 #import dbus
 #import dbus.service
 
-from DBus.mainloop.glib import DBusGMainLoop
+# from DBus.mainloop.glib import DBusGMainLoop
 
 __service_name__ = "org.tomt0m.serieplay"
 __service_objpath__ = "/org/tomt0m/serieplay"

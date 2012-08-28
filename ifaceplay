@@ -42,7 +42,8 @@ class PlayEventManager:
 	data updating functions
 	"""
 
-	def update_serie_list(self, monitor, fichier, data, event): #pylint: disable=W0613
+	def update_serie_list(self, 
+			monitor, fichier, data, event): #pylint: disable=W0613
 		""" Callbacks when a new file is added in the Serie directory,
 		Action : updates the Serie Combo
 		"""
@@ -495,6 +496,7 @@ class PlayEventManager:
 		TODO : is currently deactivated, needs to be debuged """
 		self.player_status.end_player()
 		Gtk.main_quit(widg)
+		reactor.stop() #pylint: disable = E1101
 
 	def video_keypress(self, widgi, event):#pylint: disable=W0613
 		""" Callback intended to send key events to MPlayer 
@@ -549,7 +551,7 @@ class App:
 			# "on_PromptedPlay_clicked" : self.event_mgr.prompted_play,
 			"on_SerieListCombo_changed" : \
 					self.event_mgr.selected_serie_changed,
-			# "on_MainWindow_destroy" : self.end,
+			"on_MainWindow_destroy" : self.event_mgr.end,
 			"on_numSaisonSpin_value_changed" : \
 					self.event_mgr.update_num_saison,
 			"on_numEpSpin_value_changed" : self.event_mgr.update_num_episode,
@@ -589,6 +591,7 @@ class App:
 		""" Utility function, get a widget from is string ID """
         	#return self.widg_tree.get_widget(key)
 		return self.widg_tree.get_object(key)
+
 
 def main():
 	""" Main function for script """
