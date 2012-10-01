@@ -24,13 +24,10 @@ from gobj_player.gobj_player import PlayerStatus
 from datasource.play_subdl import TVsubtitlesSubdownloader\
 	as subdownloader_subdownloader, \
 	thr_sub_dl 
-from datasource.video_finder_client import \
-		NetworkEpisodeVideoFinder as episode_video_finder
-from utils.on_event_deferred import OnEventDeferred
 
-import ui.subtitles, ui.utils
+
+import ui.subtitles, ui.ui_utils
 # from ui import subtitles
-from ui.videotorrent_list_model import VideoResultStore# * # video_result_store
 from utils.cli import CommandExecuter, CommandLineGenerator
 from serie.serie_manager import SeriesManager, Episode, BashManagedSerieFactory
 
@@ -344,43 +341,8 @@ class PlayEventManager:
 	def add_video_finder(self, episode):
 		""" Ubuesque code cascade & design trigerring
 		"""
-		logging.info("adding video finder for ep {0}...".format(episode))
-		finder = episode_video_finder(episode)
-		window = self.iface.getitem("VideoSearchResultWindow")
-		candidates_view = self.iface.getitem("TorrentList")
-		dl_button = self.iface.getitem("ChooseTorrent")
-
-		def choose(plop):#pylint: disable=W0613
-			""" Callback when the user has chosen
-			Action : triggers the dl_request
-			"""
-			(model, itera) = candidates_view.get_selection().get_selected()
-			choice = model.get_value(itera, 0)
-			logging.debug("{} {}".format(choice.filename, choice.magnet))
-			finder.on_chosen_launch_dl(choice)
-			
-			return choice	
-
-		def chosen(dl_choice):
-			""" callback to hide window"""
-			window.hide()
-			return dl_choice
-
-		def on_candidates_found(self):
-			""" Callback when results are back presents them
-			to the user """
-			candidates = finder.candidates
-			store = VideoResultStore(candidates)
-			logging.debug("candidates ... {}".format(candidates_view))
-			candidates_view.set_model(store.get_model())
-			wait_for_click = OnEventDeferred(dl_button, "clicked")
-			wait_for_click.addCallback(choose).addCallback(chosen)
-			window.present()
-			
-		finder.connect("candidates_found", #pylint: disable = E1101
-				on_candidates_found)
-
-		finder.search_newep(episode)
+		controler = ui.videotorrent_list_control.VideoFinderControler(self)
+		controler.add_video_finder(self, episode)
 
 	def selected_serie_changed(self, widg):
 		"""Callback when selected UI série changes
@@ -486,14 +448,14 @@ class PlayEventManager:
 		logging.info("Subs !! nb:{}".format(len(liste)))
 		if len(liste)== 1 and liste[0]=='':
 			self.search_subtitles(None)
-		ui.utils.populate_combo_with_items(
+		ui.ui_utils.populate_combo_with_items(
 				self.iface.getitem("CandidateSubsCombo"), 
 				liste)
 		self.update_subtitle_file(self.iface.getitem("CandidateSubsCombo"))		
 
 	def end(self, widg):
-		""" Callback to clean application & exit 
-		TODO : is currently deactivated, needs to be debuged """
+		""" Callback to clean application & exit """
+		
 		self.player_status.end_player()
 		Gtk.main_quit(widg)
 		reactor.stop() #pylint: disable = E1101
