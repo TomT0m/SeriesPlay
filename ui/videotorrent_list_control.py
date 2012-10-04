@@ -8,7 +8,7 @@ from datasource.video_finder_client import \
 
 from ui.videotorrent_list_model import VideoResultStore
 
-from utils.on_event_deferredlimport OnEventDeferred
+from utils.on_event_deferred import OnEventDeferred
 
 
 import logging

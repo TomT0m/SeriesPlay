@@ -13,7 +13,7 @@ setup(
     version = '1.0dev',
     packages = ['datasource', 'ui', 'utils', \
 		    'pysrt', 'gobj_player', \
-		    'serie', 'tests'],
+		    'serie', 'tests', 'app'],
     scripts = ['ifaceplay','video_finder_server.py'] + BASH_SCRIPTS,
     license = 'WTFPL Version 2',
     description = 'TV series collection manager',
