@@ -3,12 +3,14 @@
 """ Ui launching, main script """
 # Gtk and twisted imports
 
-
 from twisted.internet import gireactor
 gireactor.install(useGtk = True)
+
 from twisted.internet import reactor
 
 import logging
+logging.basicConfig(level=logging.INFO)
+
 from app.main_app import App		
 
 

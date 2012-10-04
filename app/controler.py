@@ -29,7 +29,7 @@ from datasource.play_subdl import \
 import ui.subtitles, ui.ui_utils, ui.videotorrent_list_control
 # from ui import subtitles
 from utils.cli import CommandExecuter, CommandLineGenerator
-
+from serie.serie_manager import Episode
 
 class PlayEventManager:
 	""" Class regrouping all callbacks and
@@ -454,7 +454,7 @@ class PlayEventManager:
 		""" Callback to clean application & exit """
 		
 		self.player_status.end_player()
-		Gtk.main_quit(widg)
+		# Gtk.main_quit(widg)
 		reactor.stop() #pylint: disable = E1101
 
 	def video_keypress(self, widgi, event):#pylint: disable=W0613
@@ -463,6 +463,7 @@ class PlayEventManager:
 		TODO : Currently unused, needs a branch.
 		"""
 		logging.info(event.hardware_keycode)
+		#self.player
 		logging.info("keypressed")
 		# logging.info(keyval)
 
