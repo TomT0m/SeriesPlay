@@ -116,7 +116,7 @@ class SeriesManager:
 		""" Returns the name of current serie """
 		return self.executer.get_output(["series", "-C"]).strip().strip(" ")
 
-	def get_num_current_season(self, nom):
+	def get_stored_current_season_number(self, nom):
 		""" Returns season number of current serie """
 		res = self.executer.get_output(["series", "-N", "-D", nom]).strip()
 		if res != "":
@@ -253,7 +253,7 @@ class Serie:
 	""" Base class for defining a serie """
 	def __init__(self, name):
 		self.name = name
-		self.season_num = self.get_current_season_number()
+		self.season_num = self.get_stored_current_season_number()
 		self.num_episode = self.get_next_episode_num()
 		self.skiptime = 0
 		self.decaytime = 0
@@ -327,9 +327,13 @@ class Serie:
 		return self.subtitle_file_name
 
 	def save_current_episode_parameters(self):
-		""" TODO : To Implement : a per episode config"""
+		""" TODO: To Implement : a per episode config"""
 		pass 
 
+	def set_next_episode(self):
+		""" on episode seen : update serie state 
+		to point to next available episode"""
+		pass	
 
 class BashManagedSerie(Serie):
 	""" Serie managed by bash script for storage and info retrieval """
@@ -342,6 +346,7 @@ class BashManagedSerie(Serie):
 		decay = None
 		self.subtitle_file_name = None
 		config = self.get_current_season_configfile()
+		self.season_num = 1
 		if os.path.exists(config):	
 			skip = self.manager.read_num_conf_var(config, \
 					self.manager.skip_time_var)
@@ -356,15 +361,21 @@ class BashManagedSerie(Serie):
 
 			if len(liste_sub)>0:
 				self.subtitle_file_name = liste_sub[0]
+			#self.season_num = self.manager\
+			#		.get_stored_current_season_number(self.name)
 		if skip != None :
 			self.skiptime = skip 
 		if decay != None :
 			self.decaytime = decay 
 		self.fps = fps.strip()
 	
+	def get_stored_current_season_number(self):
+		""" return the stored current season number for this season"""
+		return self.manager.get_stored_current_season_number(self.name)
+	
 	def get_current_season_number(self):
-		""" return the current season number of current serie """
-		return self.manager.get_num_current_season(self.name)
+		""" return the stored season number for this season"""
+		return self.season_num
 
 	def get_next_episode_num(self):
 		""" returns number of next episode to be seen in current season """
@@ -435,6 +446,7 @@ class BashManagedSerie(Serie):
 				self.fps = fps
 		else:
 			pass
+
 	def get_name_of_config_file(self, season):
 		""" Get storage filename for @season of current serie """
 		if not isinstance(season, numbers.Number):
@@ -502,7 +514,7 @@ class BashManagedSerieFactory:
 
 
 class SeriesData(object):
-	""" Base class for set of series """
+	""" Base class for series set"""
 	def __init__(self, current_serie, series):
 		self.series = {}
 		self.current_serie_name = current_serie

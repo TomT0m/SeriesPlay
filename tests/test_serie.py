@@ -18,6 +18,6 @@ def TestSerie() :
 
 		serie = BashManagedSerie()
 
-	# def test_empty(self):
+	def test_empty(self):
 			
 

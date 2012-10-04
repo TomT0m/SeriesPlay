@@ -7,12 +7,39 @@ from gi.repository import GObject, DBus
 #import dbus
 #import dbus.service
 
-# from DBus.mainloop.glib import DBusGMainLoop
+# from DBus.mainloop.glib import DBusGMainLoop
 
 __service_name__ = "org.tomt0m.serieplay"
 __service_objpath__ = "/org/tomt0m/serieplay"
 
 # dbus.set_default_mainloop()
+
+class _Gio_DBusMethodInfo:
+	    interface = None
+    in_args = None
+    out_signature = None
+
+def Gio_bus_method(dbus_interface, in_signature=None, out_signature=None):
+	    def decorator(func):
+		            func._dbus_method = _Gio_DBusMethodInfo()
+        func._dbus_method.interface = dbus_interface
+        #func._dbus_method.out_signature = '(' + (out_signature or '') + ')'
+        func._dbus_method.out_signature = out_signature or ''
+
+        func._dbus_method.in_args = []
+        in_signature_list = GLib.Variant.split_signature(in_signature)
+        arg_names = inspect.getargspec(func).args
+        arg_names.pop(0) # eat "self" argument
+        if len(in_signature) != len(arg_names):
+		            raise TypeError, 'specified signature %s for method %s does not match length of arguments' % (str(in_signature_list), func.func_name)
+        for pair in zip(in_signature_list, arg_names):
+		            func._dbus_method.in_args.append(pair)
+
+        return func
+
+    return decorator
+
+
 
 class MyDBUSService(DBus.service.Object):
 	""" Dummy DBus service """

@@ -376,7 +376,7 @@ class PlayEventManager:
 		logging.info("saison courante num changed ?")
 		self.serie_model.get_current_serie()\
 				.set_current_season_number(int(widg.get_value()))
-		self.update_serie()
+		#self.update_serie()
 		self.put_monitor_on_saison()
 	
 	def update_num_episode(self, widg):
@@ -388,7 +388,7 @@ class PlayEventManager:
 		logging.info("ep courante num changed ?")
 		self.serie_model.get_current_serie()\
 				.set_current_episode_number(int(widg.get_value()))
-		self.update_serie()
+		#self.update_serie()
 	
 	def update_skip_time(self, widg):
 		""" Callbacks when user updates the skip time
