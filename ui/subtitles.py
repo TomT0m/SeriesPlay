@@ -45,7 +45,7 @@ class SubtitlesStore:
 def subtitle_comparison_function(model,           #pylint: disable=W0613
 		column, key, ite, unknown = None):#pylint: disable=W0613
 	""" returns True if string is in subtitle"""
-	text = model.get_value(iter, 0).text.lower()
+	text = model.get_value(ite, 0).text.lower()
 	if(re.match(r".*"+key, text, re.IGNORECASE)):
 		return False
 	return True
@@ -57,8 +57,9 @@ def started_search(treeview):#pylint: disable=W0613
 def subtitle_line_text_getter(column,             #pylint: disable=W0613
 		cell, model, ite, unknown = None):#pylint: disable=W0613
 	""" Gets the text to show in corresponding column"""
-	cell.set_property('text', model.get_value(iter, 0).text)
-	return 	
+	sub_text = model.get_value(ite, 0).text
+	cell.set_property('text', sub_text)
+	return True	
 
 def subtitle_begin_time_getter(column,            #pylint: disable=W0613
 		cell, model, ite, unknown = None):#pylint: disable=W0613

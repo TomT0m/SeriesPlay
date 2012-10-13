@@ -268,6 +268,12 @@ class Serie:
 		""" Current season getter"""
 		return self.season_num
 
+	def get_stored_current_season_number():
+		""" return last know seen season number,
+		ie. the stored one
+		"""
+		pass
+
 	def get_current_episode_number(self):
 		""" Current episode getter"""
 		return self.num_episode
@@ -334,6 +340,7 @@ class Serie:
 		""" on episode seen : update serie state 
 		to point to next available episode"""
 		pass	
+
 
 class BashManagedSerie(Serie):
 	""" Serie managed by bash script for storage and info retrieval """
@@ -520,7 +527,7 @@ class SeriesData(object):
 		self.current_serie_name = current_serie
 	
 		for serie in series :
-			info("Creating ", serie)
+			info("Creating serie {}".format(serie))
 			self.series[serie] = None
 		# self.series[currentSerie]= Serie(currentSerie)
 
