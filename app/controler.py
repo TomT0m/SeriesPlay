@@ -56,7 +56,7 @@ class PlayEventManager:
 		"""
 		logging.info("Recherche d'un nouveau sub / vidéo ?")
 		if ( event == Gio.FileMonitorEvent.CREATED ):
-			self.update_serie()
+			self.update_episode_view()
 
 	def open_filemanager(self, widg):#pylint: disable=W0613
 		""" Opens a Nautilus Window on current season directory"""
@@ -299,42 +299,66 @@ class PlayEventManager:
 			self.iface.getitem(nom).set_sensitive(False), self.play_buttons)
 		return ( self.current_process == None )
 	
-	def update_serie(self):
+	def update_serie_view(self):
 		""" Callback when [lots of calls ]
 		Action : 
-		* Reads the current Store configuration to Serie Managers (current serie, ...)
+		* Reads the current Store configuration to Serie Manager (current serie, ...)
 		* and sets up interface accordingly
 		"""
-		#if not self.numseason:
-		#	self.numseason = None
+		
+		# just to update season view at the moment, 
+		# no way to change serie other than manually
+		# TODO: watch if that changes
 
+		self.update_season_view()
+
+	def update_season_view(self):
+		""" Callback when season number in serie changed.
+		Action : 
+		* update the serie & episode view
+		"""
+		
+		serie = (self.serie_model.current_serie)
+		newsaison = int(serie.season_num)
+
+		spin = self.iface.getitem("numSaisonSpin")
+		spin.set_value(newsaison)
+		
+		self.update_episode_view()
+
+	def update_episode_view(self):
+		""" Callback when a new episode must be shown
+		Action :
+		* update episode number
+		* loads sutitles & video name candidates
+		"""
 		serie = (self.serie_model.get_current_serie())
-		newsaison = int(serie.get_current_season_number())
 		num = serie.get_current_episode_number()
+		
 		if num != None :
 			newep = num 
 		else:
 			newep = 1
-		spin = self.iface.getitem("numSaisonSpin")
-		spin.set_value(newsaison)
 
 		self.iface.getitem("numEpSpin").set_value(newep)
 		self.iface.getitem("skipTimeSpin").set_value(serie.get_skip_time())
 		self.iface.getitem("decayTimeSpin").set_value(serie.get_decay_time())
-		# self.iface.getitem("FPSComboBox").get_child().set_text(serie.get_fps())
+
 		vid_list = serie.get_video_list()
 		logging.info("Videos !!! nb:{}".format(len(vid_list)))
 		logging.info(vid_list)
+
 		if len (vid_list) > 0 and not (len(vid_list) == 1 and vid_list[0] == '' ) :
 			self.iface.getitem("NomficLabel").set_text(serie.get_video_list()[0])
 		else:
 			self.iface.getitem('')
-			episode = Episode(serie, newsaison, num)
+			episode = Episode(serie, serie.season, num)
 			self.add_video_finder(episode)
 		self.update_subs()
-	# def load_season(num_season):
-		
-	# def load_ep(num_ep)
+
+	
+	
+	
 	def add_video_finder(self, episode):
 		""" Ubuesque code cascade & design trigerring
 		"""
@@ -351,7 +375,7 @@ class PlayEventManager:
 		if itera != None:
 			val = widg.get_model().get_value(widg.get_active_iter(), 0)
 			self.serie_model.set_current_serie_by_name(val)
-			self.update_serie()
+			self.update_serie_view()
 
 	def put_monitor_on_saison(self):
 		""" Set up monitoring of directory
@@ -376,19 +400,19 @@ class PlayEventManager:
 		logging.info("saison courante num changed ?")
 		self.serie_model.get_current_serie()\
 				.set_current_season_number(int(widg.get_value()))
-		#self.update_serie()
+		self.update_season_view()
 		self.put_monitor_on_saison()
-	
+
 	def update_num_episode(self, widg):
 		""" Callback When current episode changes
 		Actions :
 		* updates Model
 		* update UI accordingly
 		"""
-		logging.info("ep courante num changed ?")
+		logging.info("ep courant num changed ?")
 		self.serie_model.get_current_serie()\
 				.set_current_episode_number(int(widg.get_value()))
-		#self.update_serie()
+		self.update_episode_view()
 	
 	def update_skip_time(self, widg):
 		""" Callbacks when user updates the skip time

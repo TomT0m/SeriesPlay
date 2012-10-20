@@ -4,20 +4,18 @@
 
 import subprocess
 import os
+import re
 
 from logging import debug, info
 
 class FileNameError(Exception):
 	""" Exception thrown when command does not exists """
 	def __init__(self, value):
-		Exception.__init__(value)
+		Exception.__init__(self, value)
 		self.value = value
 	     
 	def __str__(self):
 		return repr(self.value)
-
-# class CommandException(Exception):
-# 	pass	
 
 class CommandExecuter(object):
 	""" Encapsulates a command execution """
@@ -81,7 +79,10 @@ class ConfigManager:
 
 	def read_num_var(self, var_name):
 		""" Returns the value of integer var_name in this config """
-		return self.read_num_conf_var(self.config_file_name, var_name)
+		res = self.read_num_conf_var(self.config_file_name, var_name)
+		if res == None:
+			raise Exception("Config: Not a number Key : {} in file {}".format(var_name, self.config_file))
+		return res
 
 # config management and storage 
 
@@ -89,16 +90,23 @@ class ConfigManager:
 	def read_conf_var(cls, config_file_path, var_name):
 		""" wrapper for reading a conf var in a file (VAR_NAME=VALUE)
 		returns VALUE
-		TODO: rewrite in python
 		"""
-		executer = CommandExecuter()
-		# print(config_file_path.decode(utf-8))
-		if os.path.exists(config_file_path):
-			return executer.get_output(
-					["get_conf_variable_val", config_file_path, var_name])
-		else:
-			raise FileNameError(config_file_path)
-	
+
+		with open(config_file_path,'r') as f:
+			lines = f.read()
+			
+			regstr = u"^{}=('(.*)'|\"(.*)\")$".format(var_name)
+			regexp = re.compile(regstr, re.M)
+			res = regexp.search(lines)
+			if res:
+				simple = res.group(2)
+				if simple:
+					return simple.replace("\\'","'")
+				else:
+					return res.group(3)
+			else:
+				raise Exception("Config Key not found : {} in file {}".format(var_name, config_file_path))
+
 	@classmethod
 	def write_conf_var(cls, config_file_path, var_name, value):
 		""" wrapper for settind a conf var in a file (format VAR_NAME=VALUE)
@@ -122,11 +130,13 @@ class ConfigManager:
 		try:
 			res = cls.read_conf_var(config_file_path, var_name)
 			debug(res)
-			num = int( cls.read_conf_var(config_file_path, var_name))
-			debug("Value read", type(num), num)
+			num = int( res )
+			debug("Value read".format(type(num), num))
 			return num
 		except ValueError :
-			debug("not an int" )
+			debug("not an int")
+			raise Exception("Config parse error {} { : not an int}"\
+					.format(config_file_path, var_name))
 			return None
 
 

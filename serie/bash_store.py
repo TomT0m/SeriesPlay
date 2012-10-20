@@ -3,9 +3,11 @@
 """ managing data about series, bash store implementation """
 import os
 import numbers
+import glob, re
+
 from logging import debug, info
 
-from serie_manager import SeriesManager, Serie, Episode, SeriesData
+from serie_manager import SeriesManager, Serie, Episode, Season, SeriesData
 
 from utils.cli import CommandExecuter, CommandLineGenerator, \
 		ConfigManager, FileNameError
@@ -15,7 +17,7 @@ class BashSeriesManager(SeriesManager):
 
 	config_file_season_name = ".play_conf"	
 	config_file_serie_name = ".play_season"
-	config_file_abs_name = "~/.play_season"
+	config_file_abs_name = os.path.expanduser("~/.play_season")
 
 	path_to_series_var = "BASE"
 	play_current_episode_var = "CUR"
@@ -29,6 +31,7 @@ class BashSeriesManager(SeriesManager):
 		self.executer = CommandExecuter()
 		self.config_file_abs_name = config_file 
 		self.config_manager = ConfigManager( config_file )
+
 # paths generator
 	def get_global_config_file(self):
 		""" Get Path to global user config file """
@@ -36,10 +39,8 @@ class BashSeriesManager(SeriesManager):
 
 	def get_absolute_path(self):
 		""" Get Root Path for Series storing"""
-		base = self.read_conf_var(self.get_global_config_file(), \
-						self.path_to_series_var)\
-						.strip("\n")\
-						.strip(" ")
+		base = self.config_manager.read_conf_var(self.get_global_config_file(), \
+						self.path_to_series_var)
 		base = os.path.expanduser(base)
 		info("reading conf from file : {0}".format(base))
 		debug(base)
@@ -56,34 +57,46 @@ class BashSeriesManager(SeriesManager):
 	def get_path_to_current_season(self):
 		""" Get path to current season of currently viewed serie
 		"""
-		return self.executer.get_output(["series", "-g"])
+		name = self.get_current_serie_name()
+		return self.get_path_to_current_season_of(name) 
+
+	def get_serie_configfile(self, name):
+		return os.path.join(self.get_path_to_serie(name), self.config_file_serie_name)
+
+	def get_season_configfile(self, name, season):
+		return os.path.join(self.get_path_to_season(name, season), 
+				self.config_file_season_name)
 
 	def get_path_to_current_season_of(self, name):
 		""" Get path to current season of a particular serie @name
 		"""
-		return self.executer.get_output(["series", "-g", "-n", name])
-	
+		num = self.get_stored_current_season_number(name)
+		return self.get_path_to_season(name, num)
+
 	def get_path_to_season(self, name, numsaison):
 		""" Get path to season @numseason of serie @name
 		"""
-		command = CommandLineGenerator("series")
-		if not isinstance(numsaison, numbers.Number) :
-			raise TypeError(numsaison)
-		command.add_option_single("-g")
-		command.add_option_param("-D", name)
-		command.add_option_param("-n", str(numsaison))
+		serie_path = self.get_path_to_serie(name)
+		pattern = '[Ss]*{}'.format(numsaison)
 
-		return self.executer.get_output(command.get_command())\
-				.strip().rstrip("/") + "/"
+		full_pattern = os.path.join(serie_path, pattern)
+		candidates = glob.glob(full_pattern)
+		if len(candidates) == 0:
+			raise Exception("Season {} path not found for '{}'".format(numsaison, name))
+
+		return candidates[0]
 
 	
 # config management 
-	def read_conf_var(self, config_file_path, var_name):
+	def read_conf_var(self, config_file_path, var_name, default=None):
 		""" Gets a value in a 'key=value' file format 
 		@config_file_path : the file
 		@var_name : the key
 		"""
-		return ConfigManager.read_conf_var(config_file_path, var_name)
+		try:
+			return self.config_manager.read_conf_var(config_file_path, var_name)
+		finally : 
+			return default
 	
 	def write_conf_var(self, config_file_path, var_name, value):
 		""" Writes a value in a 'key=value' file format 
@@ -91,14 +104,22 @@ class BashSeriesManager(SeriesManager):
 		@var_name : the key
 		@value : the value
 		"""
-		return ConfigManager.write_conf_var(config_file_path, var_name, value)
+		return self.config_manager.write_conf_var(config_file_path, var_name, value)
 		
-	def read_num_conf_var(self, config_file_path, var_name):
+	def read_num_conf_var(self, config_file_path, var_name, default = None):
 		""" Reads a numeric value in a 'key=value' file format 
 		@config_file_path : the file
 		@var_name : the key
 		"""
-		return ConfigManager.read_num_conf_var(config_file_path, var_name)
+		value = default
+		try:
+			value=self.config_manager.read_num_conf_var(config_file_path, var_name)
+		except Exception:
+			pass
+		return value 
+
+		# finally:
+		#	return default
 
 	def get_conf_variable(self, name, numseason, var_name):
 		""" Gets value of a variable stored for a specified @numseason season
@@ -113,65 +134,111 @@ class BashSeriesManager(SeriesManager):
 
 
 # useful data getters
-	def get_current_serie(self):
+	def get_current_serie_name(self):
 		""" Returns the name of current serie """
-		return self.executer.get_output(["series", "-C"]).strip().strip(" ")
+		return self.config_manager.read_var("NAME")
 
-	def get_stored_current_season_number(self, nom):
+	def get_stored_current_season_number(self, name):
 		""" Returns season number of current serie """
-		res = self.executer.get_output(["series", "-N", "-D", nom]).strip()
-		if res != "":
-			return int(res)
-		else:
-			return None
+
+		serie_conf_file = self.get_serie_configfile(name)
+		num = self.read_num_conf_var(serie_conf_file, "SEASON", 1)
+	
+		return num
 
 	def get_serie_list(self):
 		""" Returns the list of series name
 		on the directory """
 		debug("getting serie list")
-		liste_en_chaine = CommandExecuter().get_list_output(["series","-l"])
-
+		serie_path = self.get_absolute_path()
+		dirs = [ x for x in os.listdir(serie_path) if os.path.isdir(x) ]
 		debug("got serie list")
-		return liste_en_chaine
+		return dirs
+
+	def create_season_storage(self, serie_name, season_num):
+		serie_path = self.get_path_to_serie(serie_name)
+		dir_name = "Saison {}".format(season_num)
+		
+		full_season_path = os.path.join(serie_path, dir_name)
+		os.mkdir(full_season_path)
+
+		with open( self.get_season_configfile(serie_name, \
+				season_num) ,'w') as f:
+			f.write("""CUR='1'\nGENERICTIME='0'""")
+		
 
 	def get_current_stored_episode(self, serie_name, season_num):
 		""" Returns current episode number in disk store
 		"""
 		ficname = ""
+		season_path = None
+		try:
+			season_path = self.get_path_to_season(serie_name, \
+				season_num)
+		except Exception as e :
+			self.create_season_storage(serie_name, season_num)
+			season_path = self.get_path_to_season(serie_name, 
+				season_num)
 
-		season_path = self.get_path_to_season(serie_name, 
-				season_num) 
 		ficname = os.path.join( season_path, \
 				self.config_file_season_name )
 
 		if os.path.exists(ficname):
 			return self.read_num_conf_var(ficname, \
 					self.play_current_episode_var)
-		return None
+
+		raise Exception("Unexisting config file {}".format(ficname))
 
 	def get_subtitle_candidates(self, serie_name, season_num, num_ep):
 		""" Returns the list of filename candidates for subtitles
 		for @serie_name, for season number @season_num, episode @num_ep
 		""" 
-		return self._get_candidates(serie_name, season_num, num_ep, "-L")
+		return self._get_candidates(serie_name, season_num, num_ep, ["srt"])
 	
 	def get_video_candidates(self, serie_name, season_num, num_ep):
 		""" Returns the list of filename candidates for video
 		for @serie_name, for season number @season_num, episode @num_ep
 		""" 
-		return self._get_candidates(serie_name, season_num, num_ep, "-V")
+		return self._get_candidates(serie_name, season_num, num_ep, ["avi"])
+
+
+	def get_glob_pattern(self, season_num, num_ep, ext_list = None):
+		""" Get globbing pattern
+		TODO: print"""
+		patterns =  ['{season}.*{ep}',
+			'[sS]{season}[^0-9]( )?[eE]{ep}'
+			]
+		
+
+		pattern = "({})".format("|".join(patterns))
+
+		num_f = '{:02d}'
+		pattern = pattern.format(season = num_f.format(season_num), \
+				ep = num_f.format(num_ep))
+
+
+		if ext_list:
+			pattern = '({}.*)\.({})'.format(pattern, "|".join(ext_list))
+
+		return pattern 
 
 	def _get_candidates(self, serie_name, season_num, num_ep, option):
 		"""  calls candidates finder bash script """
 		path = self.get_path_to_season(serie_name, season_num)
                 
 		if os.path.exists(path):
-			command_g = CommandLineGenerator("play")
-			command_g.add_option_param("-e", unicode(num_ep))
-			command_g.add_option_single(unicode(option))
-			return self.executer\
-					.get_list_output(command_g.get_command(), 
-							cwd = path)
+			re_pattern = self.get_glob_pattern(season_num, num_ep, option)
+			regex = re.compile(re_pattern)
+			return [ x for x in os.listdir(path) if regex.search(x) ]
+			# XSX[^0-9]*XEX
+			#
+
+			# command_g = CommandLineGenerator("play")
+			# command_g.add_option_param("-e", unicode(num_ep))
+			# command_g.add_option_single(unicode(option))
+			#return self.executer\
+			#		.get_list_output(command_g.get_command(), 
+			#				cwd = path)
 		else:
 			return []
 
@@ -181,9 +248,26 @@ class BashManagedEpisode(Episode):
 
 	TODO : finish implementation separation
 	"""
-	def __init__(self, serie, season_num, num_ep):
-		Episode.__init__(self, serie, season_num, num_ep)	
+	def __init__(self, serie, season, ep_number):
+		Episode.__init__(self, serie, season, ep_number)
+		# TODO: look for moving to dependancy injection framework
+		assert(isinstance(season.number, numbers.Number))
+		self.manager = serie.manager
+
+	# def get_number(self):
+	# 	return self.num_ep
 	
+class BashManagedSeason(Season):
+	def __init__(self, serie, number):
+		self.manager = serie.manager
+		Season.__init__(self, serie, number)
+
+	@property
+	def episode(self):
+		ep_number = self.serie.get_next_episode_in_season(self.number)
+
+		return BashManagedEpisode(self.serie, self, ep_number)
+
 class BashManagedSerie(Serie):
 	""" Serie managed by bash script for storage and info retrieval """
 
@@ -195,12 +279,22 @@ class BashManagedSerie(Serie):
 		decay = None
 		self.subtitle_file_name = None
 		config = self.get_current_season_configfile()
-		self.season_num = 1
-		if os.path.exists(config):	
-			skip = self.manager.read_num_conf_var(config, \
-					self.manager.skip_time_var)
-			fps = self.manager.read_conf_var(config, \
-					self.manager.fps_var)
+		self.season_num = self.get_stored_current_season_number()
+
+		if os.path.exists(config):
+			try:
+				skip = self.manager.read_num_conf_var(config, \
+						self.manager.skip_time_var,
+						0)
+			finally:
+				skip = 0
+			try:
+				fps = self.manager.read_conf_var(config, \
+					self.manager.fps_var,
+					None)
+			finally:
+				fps = None
+
 			if fps == None:
 				fps = ""
 	
@@ -210,16 +304,18 @@ class BashManagedSerie(Serie):
 
 			if len(liste_sub)>0:
 				self.subtitle_file_name = liste_sub[0]
-			#self.season_num = self.manager\
-			#		.get_stored_current_season_number(self.name)
+			self.season_num = self.manager\
+					.get_stored_current_season_number(self.name)
 		if skip != None :
 			self.skiptime = skip 
 		if decay != None :
 			self.decaytime = decay 
-		self.fps = fps.strip()
 	
 	def get_stored_current_season_number(self):
 		""" return the stored current season number for this season"""
+		
+		assert(self.name != "" and self.name)
+		
 		return self.manager.get_stored_current_season_number(self.name)
 	
 	def get_current_season_number(self):
@@ -235,6 +331,7 @@ class BashManagedSerie(Serie):
 
 	def get_next_episode(self):
 		""" next unseen episode number in season"""
+		assert( i)
 		return BashManagedEpisode(self, 
 				self.get_current_season_number(), 
 				self.get_next_episode_num())
@@ -242,11 +339,14 @@ class BashManagedSerie(Serie):
 
 	def get_next_episode_in_season(self, season_num):
 		""" last seen episode number in season"""
-		num = self.manager.get_current_episode(self.name, season_num)
+		num = self.manager.get_current_stored_episode(self.name, season_num)
 		if num != None:
 			return num
 		else:
 			return 1
+
+	def get_season(self, number):
+		return BashManagedSeason(self, number)
 
 	def on_seen_episode(self):
 		self.season_num = self.get_current_season_number()
@@ -354,6 +454,7 @@ class BashManagedSerieFactory:
 		""" Factory method, serie list """
 		return BashManagedSeriesData(self.manager, self)
 
+
 class BashManagedSeriesData(SeriesData):
 	""" Serie info retrieved by bash scripts, historical"""
 	def __init__(self, manager, serie_factory = None):
@@ -365,7 +466,7 @@ class BashManagedSeriesData(SeriesData):
 		
 		liste = manager.get_serie_list()
 		super(BashManagedSeriesData, self)\
-				.__init__(manager.get_current_serie(), liste)
+				.__init__(manager.get_current_serie_name(), liste)
 
 	def get_base_path(self):
 		""" Returns path of series storage """
@@ -373,7 +474,6 @@ class BashManagedSeriesData(SeriesData):
 	
 	def add_serie(self, name):
 		""" add a serie to the store, from his name """
-		info("fifis adding serie")
+		debug("fifis adding serie")
 		self.series[name] = self.serie_factory.create_serie(name)
-
 

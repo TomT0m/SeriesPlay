@@ -1,6 +1,10 @@
 """ utilies for unittesting """
-from serie.serie_manager import SeriesManager, \
-		ConfigManager, BashManagedSerie, BashManagedEpisode
+
+from serie.bash_store import \
+		ConfigManager, BashManagedSerie, BashManagedEpisode, \
+		BashManagedSeason
+from serie.serie_manager import SeriesManager
+
 from utils.cli import CommandExecuter, CommandLineGenerator
 
 import os
@@ -99,6 +103,7 @@ class DummySeriesManager(SeriesManager):
 def get_serie_and_ep():
 	serie_manager = DummySeriesManager()
 	serie = BashManagedSerie("Dexter", serie_manager)
-	episode = BashManagedEpisode(serie, 5, 1)
+	season = BashManagedSeason(serie, 5)
+	episode = BashManagedEpisode(serie, season, 1)
 
 	return (serie, episode)

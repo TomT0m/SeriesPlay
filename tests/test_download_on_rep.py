@@ -66,7 +66,7 @@ class testDownloadOnRep(unittest.TestCase):
 		TODO : Creating a fake environment
 		"""
 		
-		print("logging")
+		# print("logging")
 		logging.basicConfig(level=logging.DEBUG)
 #		self.serie_manager = DummySeriesManager()
 #		
