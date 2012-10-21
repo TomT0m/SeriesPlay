@@ -5,11 +5,15 @@
 from twisted.trial import unittest
 # import ui
 from gi.repository import Gtk #pylint: disable=E0611 
+
 from ui.videotorrent_list_control import VideoFinderControler
+
+from app.main_app import App
 
 class FakeApp(object):
 	""" Fake testing app """
 	def __init__(self):
+		twisted.internet.base.DelayedCall.debug = True
 		builder = Gtk.Builder()
 		builder.add_from_file("../ui/IfacePlay.ui")
 
@@ -23,7 +27,7 @@ class FakeApp(object):
 
 def create_app():
 	""" Fake App factory function """
-	return FakeApp()
+	return App()
 
 class TestVideotorrentControler(unittest.TestCase):
 	""" Controler testcase :
@@ -31,7 +35,7 @@ class TestVideotorrentControler(unittest.TestCase):
 	* empty selection
 	* selection
 	* cancelation
-	"""
+		"""
 	def setUp(self): #pylint: disable=C0103
 		""" setting up """
 		print("setting up")
@@ -42,5 +46,3 @@ class TestVideotorrentControler(unittest.TestCase):
 		control = VideoFinderControler(app)
 		return control
 	
-	def test_empty(self):
-		pass

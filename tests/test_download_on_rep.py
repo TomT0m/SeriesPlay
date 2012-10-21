@@ -2,13 +2,12 @@
 #encoding: utf-8
 
 from twisted.trial import unittest
-from twisted.internet import defer # ,gtk2reactor as reactor
+from twisted.internet import defer 
 from gi.repository import GObject
 
 
 from twisted.python.failure import Failure
 from unittest import expectedFailure
-# reactor.install()
 
 import serie.serie_manager
 from datasource.episode_video_finder import EpisodeVideoFinder
@@ -66,12 +65,7 @@ class testDownloadOnRep(unittest.TestCase):
 		TODO : Creating a fake environment
 		"""
 		
-		print("logging")
 		logging.basicConfig(level=logging.DEBUG)
-#		self.serie_manager = DummySeriesManager()
-#		
-#		self.serie = serie_manager.bashManagedSerie("Dexter",self.serie_manager)
-#		self.episode = serie_manager.bashManagedEpisode(self.serie,5,1)
 		(self.serie,self.episode) = tests.common_test.get_serie_and_ep()
 
 		d = component.start()
@@ -96,7 +90,6 @@ class testDownloadOnRep(unittest.TestCase):
 		ep_finder = EpisodeVideoFinder(self.episode)
 		ep_find = ep_finder.search_newep(self.episode).addCallback(print_results)
 		test = OnEventDeferred(ep_finder,"candidates_found")
-		#defe = ep_find.search_newep(self.episode)
 		return test.addCallback(self.assertTrue)
 
 	def test_search_and_choose(self):
@@ -117,4 +110,4 @@ class testDownloadOnRep(unittest.TestCase):
 		candidates_found = OnEventDeferred(ep_finder,"candidates_found").addCallback(choose).addErrback(catch_err)
 		ep_find = ep_finder.search_newep(self.episode).addCallback(print_results)
 		
-		return final_test.addBoth(catch_err) # .addCallback(plop)#candidates_found.addCallback(final_test)# first_step.addCallback(final_test)
+		return final_test.addBoth(catch_err) 
