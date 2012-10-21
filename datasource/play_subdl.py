@@ -4,6 +4,7 @@
 @class Subdownloader
 """
 
+import logging
 from logging import info, debug
 
 def thr_sub_dl(model, subdl):
@@ -20,6 +21,11 @@ Téléchargment des sous-titres dans un thread
 	numep = serie.get_current_episode_number()
 	numsais = serie.get_current_season_number()
 	
+	info("searching subtitles for {} season {} ep {} ... "\
+			.format(nom, numep, numsais)
+			)
+	info("dl path: {}".format(path))
+
 	subdl.get_for_ep(serie.name, numsais, numep, path) 
 
 class Subdownloader(object):
@@ -103,11 +109,7 @@ class TVsubtitlesSubdownloader(Subdownloader):
 		request = "//table[@id='table5']"
 
 		table = (tree.xpath(request)[0])
-		#print (table.tag)
-		#print (table)
-		#print (etree.tostring(table,pretty_print=True))
 
-		escape_name = '{' + nom_serie+'}'
 		escape_name = nom_serie
 		req2 = "tr/td/a/b[contains(text(),'{0}')]".format(escape_name)
 		req3 = "tr/td[contains(a/b/text(),'{0}')]/a".format(escape_name)
@@ -200,7 +202,7 @@ class TVsubtitlesSubdownloader(Subdownloader):
 	def get_all_files_id(cls, data_sublist):
 		""" gets the subtitles files id from the 
 		html page presenting the list of subtitles"""
-		req = '/html/body/div/div[3]/div/a[div/@class="subtitlen"]'
+		req = '//a[div/@class="subtitlen"]'
 		
 		parser = etree.HTMLParser()
 		tree = etree.parse(StringIO(data_sublist), parser)
@@ -220,6 +222,7 @@ class TVsubtitlesSubdownloader(Subdownloader):
 	def download_list(cls, epid_list, destination):
 		""" Download and extracts the epid 
 		list into destination """
+		info("extracting subs to {}".format(destination))
 		for epid in epid_list:
 			url = cls.get_url_from_subid(epid)
 			info("url {} :".format(url))
@@ -261,7 +264,7 @@ class TVsubtitlesSubdownloader(Subdownloader):
 
 def main():
 	""" testing function """
-
+	logging.basicConfig(level=logging.DEBUG)
 	obj = TVsubtitlesSubdownloader()
 	
 	obj.get_for_ep("Dexter", 6, 12, "./dst")

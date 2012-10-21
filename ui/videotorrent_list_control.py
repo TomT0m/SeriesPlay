@@ -29,7 +29,7 @@ class VideoFinderControler(object):
 		dl_button = self.app.iface.getitem("ChooseTorrent")
 		cancel_button = self.app.iface.getitem("CancelChooseTorrent")
 
-		wait_for_click = None
+		clo = {"wait_for_click" : None}
 
 		def choose(plop):#pylint: disable=W0613
 			""" Callback when the user has chosen
@@ -49,7 +49,7 @@ class VideoFinderControler(object):
 
 		def on_cancel_pressed(self):
 			""" Callback : not choosing Yet """
-			wait_for_click.cancel()
+			clo["wait_for_click"].cancel()
 			window.hide()
 
 
@@ -60,8 +60,8 @@ class VideoFinderControler(object):
 			store = VideoResultStore(candidates)
 			logging.debug("candidates ... {}".format(candidates_view))
 			candidates_view.set_model(store.get_model())
-			wait_for_click = OnEventDeferred(dl_button, "clicked")
-			wait_for_click.addCallback(choose).addCallback(chosen)
+			clo["wait_for_click"] = OnEventDeferred(dl_button, "clicked")
+			clo["wait_for_click"].addCallback(choose).addCallback(chosen)
 
 			cancel_button.connect("clicked", on_cancel_pressed)
 

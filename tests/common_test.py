@@ -1,3 +1,5 @@
+#encoding: utf-8
+
 """ utilies for unittesting """
 
 from serie.bash_store import \
@@ -107,3 +109,49 @@ def get_serie_and_ep():
 	episode = BashManagedEpisode(serie, season, 1)
 
 	return (serie, episode)
+
+MAIN_FILE = """
+NAME='{}'
+BASE='.'
+"""
+
+EPISODE_FILE = """
+MOTIF=''
+CUR='{}'
+GENERICTIME='0'
+DECALAGESUB='0'
+OPTIONS='-fs'
+NEED_SUB='on'
+SUBFPS=''
+"""
+
+SEASON_FILE = """
+SEASON='{}'
+"""
+
+MAIN_CONF_FILE = ".play_season"
+
+
+def create_fake_env(name, season, ep):
+	season_rep="Season {}".format(season)
+
+	# main config file
+	with open(MAIN_CONF_FILE, 'w') as f:
+		f.write(MAIN_FILE.format(name))
+
+	season_path = os.path.join(".", name, season_rep)
+	
+	try :
+		os.makedirs(season_path)
+	except OSError:
+		pass
+	finally :
+		pass
+
+	with open(os.path.join(name, ".play_season"), "w") as f:
+		f.write(SEASON_FILE.format(season))
+
+	with open(os.path.join(season_path, ".play_conf"), "w") as f:
+		f.write(EPISODE_FILE.format(ep))
+
+

@@ -87,7 +87,7 @@ class MPlayerSlave:
 
 	def get_property(self, prop):
 		""" Returns a "property" of MPlayer process value """
-		debug("getting property", prop)
+		debug("getting property {}".format(prop))
 		
 		result = self.send_command_with_result("get_property " + prop)
 		#print("Mplayer result : '{0}'".format(result))

@@ -205,16 +205,15 @@ class BashSeriesManager(SeriesManager):
 	def get_glob_pattern(self, season_num, num_ep, ext_list = None):
 		""" Get globbing pattern
 		TODO: print"""
-		patterns =  ['{season}.*{ep}',
-			'[sS]{season}[^0-9]( )?[eE]{ep}'
+		patterns =  ['({season:02d}|{season:d}).*{ep:02d}',
+				'[sS]{season:02d}[^0-9]( )?[xeE]{ep:02d}'
 			]
 		
 
 		pattern = "({})".format("|".join(patterns))
 
-		num_f = '{:02d}'
-		pattern = pattern.format(season = num_f.format(season_num), \
-				ep = num_f.format(num_ep))
+		pattern = pattern.format(season = season_num, \
+				ep = num_ep)
 
 
 		if ext_list:

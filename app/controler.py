@@ -189,7 +189,7 @@ class PlayEventManager:
 		self.current_process = None
 		if not self.iface.getitem("SetupModeCheck").get_active():
 			self.serie_model.get_current_serie().on_seen_episode()
-			self.update_serie()
+			self.update_serie_view()
 		GObject.source_remove(self.handle_file)
 		GObject.source_remove(self.handle_end)
 		return False	
@@ -348,8 +348,8 @@ class PlayEventManager:
 		logging.info("Videos !!! nb:{}".format(len(vid_list)))
 		logging.info(vid_list)
 
-		if len (vid_list) > 0 and not (len(vid_list) == 1 and vid_list[0] == '' ) :
-			self.iface.getitem("NomficLabel").set_text(serie.get_video_list()[0])
+		if len (vid_list) > 0 :
+			self.iface.getitem("NomficLabel").set_text(vid_list[0])
 		else:
 			self.iface.getitem('')
 			episode = Episode(serie, serie.season, num)
@@ -466,9 +466,11 @@ class PlayEventManager:
 		Action : updates Model, updtates ui
 		"""
 		liste = self.serie_model.get_current_serie().get_subtitle_list()
+
 		logging.info("Subs !! nb:{}".format(len(liste)))
-		if len(liste)== 1 and liste[0]=='':
+		if len(liste) == 0:
 			self.search_subtitles(None)
+
 		ui.ui_utils.populate_combo_with_items(
 				self.iface.getitem("CandidateSubsCombo"), 
 				liste)

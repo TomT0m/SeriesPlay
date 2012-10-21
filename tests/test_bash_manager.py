@@ -9,49 +9,8 @@ from serie.bash_store import BashSeriesManager, BashManagedSerie, BashManagedSer
 import os
 import re
 
-
-MAIN_FILE = """
-NAME='{}'
-BASE='.'
-"""
-
-EPISODE_FILE = """
-MOTIF=''
-CUR='{}'
-GENERICTIME='0'
-DECALAGESUB='0'
-OPTIONS='-fs'
-NEED_SUB='on'
-SUBFPS=''
-"""
-
-SEASON_FILE = """
-SEASON='{}'
-"""
-
-MAIN_CONF_FILE = ".play_season"
-
-def create_fake_env(name, season, ep):
-	season_rep="Season {}".format(season)
-
-	# main config file
-	with open(MAIN_CONF_FILE, 'w') as f:
-		f.write(MAIN_FILE.format(name))
-
-	season_path = os.path.join(".", name, season_rep)
-	
-	try :
-		os.makedirs(season_path)
-	except OSError:
-		pass
-	finally :
-		pass
-
-	with open(os.path.join(name, ".play_season"), "w") as f:
-		f.write(SEASON_FILE.format(season))
-
-	with open(os.path.join(season_path, ".play_conf"), "w") as f:
-		f.write(EPISODE_FILE.format(ep))
+from tests.common_test import create_fake_env, \
+		MAIN_CONF_FILE
 
 
 class TestBashManager(unittest.TestCase):
@@ -129,3 +88,12 @@ class TestBashManager(unittest.TestCase):
 		self.assertFalse(re.search(pattern, 'Bidou s02e01.avi'))
 		self.assertTrue(re.search(pattern, 'Bidou s01e01.flv'))
 		self.assertFalse(re.search(pattern, 'Bidou s01e01.plop'))
+
+
+		pattern = bash_manager.get_glob_pattern(1, 1, ["srt"])
+
+		self.assertTrue(re.search(pattern, 'Bidou s01e01.srt'))
+		self.assertFalse(re.search(pattern, 'Bidou s01e01.plop'))
+		self.assertTrue(re.search(pattern, 'Dexter - 1x01 - Dexter.720p.BluRay.BoB.en.srt'))
+
+
