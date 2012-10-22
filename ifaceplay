@@ -8,8 +8,20 @@ gireactor.install(useGtk = True)
 
 from twisted.internet import reactor
 
+#################
+from optparse import OptionParser
+parser = OptionParser()
+parser.add_option("-D", "--debug", dest = 'debug', default = False, \
+		help = "put logging in debug verbosity")
+(options, args) = parser.parse_args()
+################
+
+
 import logging
-logging.basicConfig(level=logging.DEBUG)
+if options.debug:
+	logging.basicConfig(level=logging.DEBUG)
+
+
 
 from app.main_app import App		
 

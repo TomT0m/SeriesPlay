@@ -21,6 +21,8 @@ from serie.bash_store import BashSeriesManager, BashManagedSerieFactory
 from datasource.play_subdl import TVsubtitlesSubdownloader\
 	as subdownloader_subdownloader
 
+from app.config import Config
+
 
 class App:
 	"""Class for main Manager app"""

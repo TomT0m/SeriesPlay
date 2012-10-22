@@ -12,6 +12,8 @@ from serie_manager import SeriesManager, Serie, Episode, Season, SeriesData
 from utils.cli import CommandExecuter, CommandLineGenerator, \
 		ConfigManager, FileNameError
 
+from app.config import Config
+
 class BashSeriesManager(SeriesManager):
 	""" Base class model for a set of Series managed by a bash store """
 
@@ -31,6 +33,7 @@ class BashSeriesManager(SeriesManager):
 		self.executer = CommandExecuter()
 		self.config_file_abs_name = config_file 
 		self.config_manager = ConfigManager( config_file )
+		self.config = Config(config_file) 
 
 # paths generator
 	def get_global_config_file(self):
@@ -192,14 +195,17 @@ class BashSeriesManager(SeriesManager):
 	def get_subtitle_candidates(self, serie_name, season_num, num_ep):
 		""" Returns the list of filename candidates for subtitles
 		for @serie_name, for season number @season_num, episode @num_ep
-		""" 
-		return self._get_candidates(serie_name, season_num, num_ep, ["srt"])
+		"""
+		extensions = self.config.get_sub_extensions()
+
+		return self._get_candidates(serie_name, season_num, num_ep, extensions)
 	
 	def get_video_candidates(self, serie_name, season_num, num_ep):
 		""" Returns the list of filename candidates for video
 		for @serie_name, for season number @season_num, episode @num_ep
 		""" 
-		return self._get_candidates(serie_name, season_num, num_ep, ["avi"])
+		extensions = self.config.get_video_extensions()
+		return self._get_candidates(serie_name, season_num, num_ep, extensions)
 
 
 	def get_glob_pattern(self, season_num, num_ep, ext_list = None):

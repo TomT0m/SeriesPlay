@@ -14,3 +14,10 @@ class TestTvsubdl(unittest.TestCase):
 
 	def test_dl(self):
 		bash_manager = BashSeriesManager(MAIN_CONF_FILE)
+	
+	def test_search_and_dl(self):
+
+		obj.get_for_ep("Dexter", 6, 12, "./dst")
+		obj.get_for_ep("Treme", 1, 1, "./dst")
+
+		self.assertTrue(os.path.exists())
