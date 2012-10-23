@@ -21,7 +21,7 @@ from twisted.internet import reactor
 
 #internal imports
 
-from gobj_player.gobj_player import PlayerStatus 
+from gobj_player.gobj_player import PlayerStatus
 from datasource.play_subdl import \
 	thr_sub_dl
 from datasource.play_subdl import Subdownloader
@@ -143,13 +143,11 @@ class PlayEventManager(object):
 		self.serie_model = serie_model
 
 		logging.debug ("Setting up file monitoring ... ")
-		
 		nomfic = serie_model.get_base_path()
 		fichier = Gio.File.new_for_path(nomfic)
 		if(fichier):
 			self.monitor = fichier.monitor_directory(Gio.FileMonitorFlags.NONE, None)
 			self.monitor.connect("changed", self.update_serie_list)
-		
 		self.player_status = PlayerStatus()
 
 
@@ -261,9 +259,8 @@ class PlayEventManager(object):
 		launches UI updates for next episode, update models
 		"""
 		logging.info("end of play !")
-		map(lambda nom: 
-			self.app.getitem(nom).set_sensitive(True),
-			self.play_buttons)
+		for nom in self.play_buttons :
+			self.app.getitem(nom).set_sensitive(True)
 		self.current_process = None
 		if not self.app.getitem("SetupModeCheck").get_active():
 			self.serie_model.current_serie.on_seen_episode()
@@ -324,7 +321,7 @@ class PlayEventManager(object):
 		chemin_serie = self.serie_model.get_current_serie()\
 				.get_path_to_current_season()
 		arguments = [self.serie_model, self.subtitle_downloader]
-		methode = thr_sub_dl		
+		methode = thr_sub_dl
 		subdl_worker = threading.Thread(\
 				name = "thread_sub"+chemin_serie, args = arguments, target = methode)
 		subdl_worker.start()
@@ -338,7 +335,7 @@ class PlayEventManager(object):
 		(model, itera)= treeview.get_selection().get_selected()
 		time = model.get_value(itera, 0).start
 		self.player_status.handle_seek(time)
-	
+
 	def subtitle_sync(self, button):#pylint: disable=W0613
 		""" Callback when user wants to decay subtitles to a current time
 
@@ -362,11 +359,11 @@ class PlayEventManager(object):
 
 		# sending command
 		self.player_status.set_subtitles_delay(delay)
-	
+
 	def playing(self):
 		""" Action function : sets the interface in playing mode """
-		map(lambda nom: 
-			self.app.getitem(nom).set_sensitive(False), self.play_buttons)
+		for nom in self.play_buttons:
+			self.app.getitem(nom).set_sensitive(False)
 		return ( self.current_process == None )
 	
 
@@ -376,7 +373,7 @@ class PlayEventManager(object):
 		* Reads the current Store configuration to Serie Manager (current serie, ...)
 		* and sets up interface accordingly
 		"""
-		
+
 		# just to update season view at the moment, 
 		# no way to change serie other than manually
 		# TODO: watch if that changes
@@ -388,13 +385,13 @@ class PlayEventManager(object):
 		Action : 
 		* update the serie & episode view
 		"""
-		
+
 		serie = (self.serie_model.current_serie)
 		newsaison = int(serie.season_num)
 
 		spin = self.app.getitem("numSaisonSpin")
 		spin.set_value(newsaison)
-		
+
 		self.update_episode_view()
 
 	@property
@@ -423,14 +420,13 @@ class PlayEventManager(object):
 		if len (vid_list) > 0 :
 			self.app.getitem("NomficLabel").set_text(vid_list[0])
 		else:
-			# self.app.getitem('')
 			episode = Episode(serie, serie.season, newep)
 			self.add_video_finder(episode)
 		self.update_subs()
 
-	
-	
-	
+
+
+
 	def add_video_finder(self, episode):
 		""" Ubuesque code cascade & design trigerring
 		"""
@@ -487,7 +483,7 @@ class PlayEventManager(object):
 		logging.debug(self.serie_model.current_serie.season.episode.number)
 
 		self.update_episode_view()
-	
+
 	def update_skip_time(self, widg):
 		""" Callbacks when user updates the skip time
 		Action : 
@@ -502,7 +498,7 @@ class PlayEventManager(object):
 		* updates Model
 		"""
 		logging.info("decay time changed ? {}".format(widg.get_value()))
-		
+
 		self.serie_model.get_current_serie().set_decay_time(int(widg.get_value()))
 
 	def update_fps(self, widg):
@@ -524,13 +520,13 @@ class PlayEventManager(object):
 		if itera != None:
 			val = widg.get_model().get_value(widg.get_active_iter(), 0)
 			self.serie_model.get_current_serie().set_subtitle_file(val)
-			
+
 			absolute_subfile = os.path.join(
 					self.serie_model\
 							.get_current_serie()\
 							.get_path_to_current_season(),
 					val)
-			
+
 			subtitle_file_model = ui.subtitles.SubtitlesStore(absolute_subfile)
 			self.app.getitem("SubtitlesTreeView")\
 					.set_model(subtitle_file_model.get_model())
@@ -551,7 +547,7 @@ class PlayEventManager(object):
 		self.update_subtitle_file(self.app.getitem("CandidateSubsCombo"))		
 	def end(self, widg):
 		""" Callback to clean application & exit """
-		
+
 		self.player_status.end_player()
 		# Gtk.main_quit(widg)
 		reactor.stop() #pylint: disable = E1101
@@ -569,5 +565,4 @@ class PlayEventManager(object):
 	def set_manager(self, man):
 		""" Setter for the main Available Séries manager """
 		self.manager = man
-		
 

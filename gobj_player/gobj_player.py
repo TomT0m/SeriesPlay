@@ -10,7 +10,7 @@ from gi.repository import GObject #pylint: disable=E0611
 
 from logging import debug, info
 
-from decorator import decorator
+# from decorator import decorator
 
 from mplayer_slave import MPlayerSlave
 
@@ -19,17 +19,18 @@ def command_sender(func):
 	""" decorator for catching and watching 
 	state changes of slave, restarting in case of non answers
 	"""
-	def wrapper(self,*args, **kwargs):
-		""" the real wrapper """ 
+	def wrapper(self, *args, **kwargs):
+		""" the real wrapper """
 		try:
-			result = func(self,*args, **kwargs)
+			result = func(self, *args, **kwargs)
 
 		except IOError:
-			args[0].player.__init__()
-			args[0].emit('play_ended')
+			#args[0].player.__init__()
+			#args[0].emit('play_ended')
+			self.emit('play_ended')
 			result = None
 		return result
-	return wrapper 
+	return wrapper
 
 
 
@@ -37,7 +38,7 @@ class PlayerStatus(GObject.GObject):
 	""" GObject handling managing a slave MPlayer object,
 	syncing its status with internal mplayer process status
 	"""
-	__gproperties__ = { 
+	__gproperties__ = {
 		'playing' : (	GObject.TYPE_BOOLEAN,                        # type
 				'playing status',                         # nick name
 				'true if currently playing', # description
@@ -92,11 +93,11 @@ class PlayerStatus(GObject.GObject):
 		self.playing = True
 
 	def get_playing(self):
-		""" getter for status """ 
+		""" getter for status """
 		return self.playing
 
 	def stop(self):
-		""" ??? unfinished """ 
+		""" ??? unfinished """
 		if self.playing :
 			self.playing = False
 	
@@ -108,7 +109,7 @@ class PlayerStatus(GObject.GObject):
 	@command_sender
 	def handle_seek(self, srt_time):
 		""" seeks to a srt time 
-		TODO: Debug this""" 
+		TODO: Debug this"""
 		seek_time = srt_time.to_time()
 		debug(seek_time)
 		seek_seconds = seek_time.hour * 3600 + \

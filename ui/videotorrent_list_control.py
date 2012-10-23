@@ -11,6 +11,7 @@ from ui.videotorrent_list_model import VideoResultStore
 from utils.on_event_deferred import OnEventDeferred
 
 from snakeguice.decorators import inject
+from twisted.internet import defer
 
 import logging
 
@@ -26,6 +27,15 @@ class VideoFinderController(object):
 		self.video_finder_creator = video_finder_creator
 
 	def add_video_finder(self, app, episode):
+		""" asynch version """
+		defe = defer.maybeDeferred(app.get_service, app.video_finder_key)
+		def callback(res):
+			""" call wrapping """
+			self._add_video_finder(app, episode)
+
+		return defe.addCallback(callback)
+
+	def _add_video_finder(self, app, episode):
 		""" Adding a new finder to the app"""
 		logging.info("adding video finder for ep {0}...".format(episode))
 		finder = self.video_finder_creator.get()
@@ -46,8 +56,8 @@ class VideoFinderController(object):
 			choice = model.get_value(itera, 0)
 			logging.debug("{} {}".format(choice.filename, choice.magnet))
 			finder.on_chosen_launch_dl(choice)
-			
-			return choice	
+
+			return choice
 
 		def chosen(dl_choice):
 			""" callback to hide window"""

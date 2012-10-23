@@ -23,6 +23,7 @@ from datasource.play_subdl import Subdownloader, TVsubtitlesSubdownloader\
 from snakeguice.modules import Module
 
 from app.config import Config
+from app.service import PipeService, async_start
 
 class ControllerFactory(object):
 	""" Factory creating a standard controller"""
@@ -49,6 +50,34 @@ class AppModule(Module):
 
 class App(object):
 	"""Class for main Manager app"""
+	video_finder_key = "TorrentDl"
+	
+	def async_start_service(self, service, key):
+		""" async start a service"""
+		async_start(service, key, self.services)
+
+	def start_services(self):
+		"""Add services used by app
+		TODO: complete service
+		"""
+		self.services[self.video_finder_key] = \
+				async_start(PipeService("video_finder_server.py"),
+						self.video_finder_key)
+
+	def get_service(self, key):
+		""" Returns a MaybeDeferred which waits for service for starting 
+		(if not started) to trigger its callback
+		"""
+		return self.services[key]
+
+
+	def stop_app(self, widg):
+		""" Stop App 
+		TODO : see if must move from event_mgr.end()"""
+		for serv in self.services.itervalues():
+			serv.stop()
+		self.event_mgr.end(widg)
+
 
 	def __init__(self, injector):
 		self.injector = injector
@@ -63,7 +92,11 @@ class App(object):
 		builder.add_from_file(gladefile)
 
 		self.widg_tree = builder 
-		
+	
+		self.services = {}
+
+		self.start_services()
+
 		# Model initialization
 	
 		self.store = store
@@ -87,8 +120,6 @@ class App(object):
 		
 		# Control : data getter for serie initialization
 		
-		# self.event_mgr.set_subdownloader(subdownloader)
-		self.event_mgr.set_manager(self.store)
 		
 		# View : initial screen setup 
 		
@@ -106,7 +137,8 @@ class App(object):
 					self.event_mgr.play_with_sub,
 			"on_SerieListCombo_changed" : \
 					self.event_mgr.selected_serie_changed,
-			"on_MainWindow_destroy" : self.event_mgr.end,
+			"on_MainWindow_destroy" : self.stop_app, \
+
 			"on_numSaisonSpin_value_changed" : \
 					self.event_mgr.update_season_number,
 			"on_numEpSpin_value_changed" : self.event_mgr.update_episode_number,
