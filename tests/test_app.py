@@ -44,5 +44,7 @@ class TestVideotorrentControler(unittest.TestCase):
 		""" Fake app creation """
 		app = create_app()
 		control = VideoFinderControler(app)
+		combo_box = app.getitem("SerieListCombo")
+		combo_box.set_active(2)
 		return control
 	

@@ -374,7 +374,7 @@ class PlayEventManager:
 		itera = widg.get_active_iter()
 		if itera != None:
 			val = widg.get_model().get_value(widg.get_active_iter(), 0)
-			self.serie_model.set_current_serie_by_name(val)
+			self.serie_model.name = val
 			self.update_serie_view()
 
 	def put_monitor_on_saison(self):
