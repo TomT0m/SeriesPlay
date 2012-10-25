@@ -53,15 +53,18 @@ class App(object):
 	video_finder_key = "TorrentDl"
 	
 	def async_start_service(self, service, key):
-		""" async start a service"""
-		async_start(service, key, self.services)
+		""" async start a service """
+		async_start(service, self.services, key)
 
 	def start_services(self):
 		"""Add services used by app
 		TODO: complete service
 		"""
+		# beginning of a Code Goldberg Machine
+		# Keep it overly complex
+
 		self.services[self.video_finder_key] = \
-				async_start(PipeService("video_finder_server.py"),
+				self.async_start_service(PipeService("video_finder_server.py"),
 						self.video_finder_key)
 
 	def get_service(self, key):
