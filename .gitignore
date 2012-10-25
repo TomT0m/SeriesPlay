@@ -4,3 +4,4 @@ _trial_temp*
 _tmp*
 build*
 tests/data/*
+doc/.*
