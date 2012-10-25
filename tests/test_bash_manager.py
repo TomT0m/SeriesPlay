@@ -17,8 +17,8 @@ class TestBashManager(unittest.TestCase):
 	""" Test case : bash serie manager """
 
 	def setUp(self):
+		create_fake_env('ZPlop', 2, 2)
 		create_fake_env('Plop', 2, 2)
-		print("setting up")
 
 	def assert_equivalent_path(self, path1, path2):
 		abs1 = os.path.abspath(path1)
@@ -32,7 +32,9 @@ class TestBashManager(unittest.TestCase):
 		serie_list = bash_manager.get_serie_list()
 		self.assertTrue(bash_manager.get_global_config_file() == MAIN_CONF_FILE)
 		self.assertTrue("Plop" in serie_list)
-
+		self.assertTrue("ZPlop" in serie_list)
+		self.assertTrue(len(serie_list) == 2)
+		
 		serie_name = bash_manager.get_current_serie_name()
 		self.assertTrue( serie_name == "Plop" )
 		
