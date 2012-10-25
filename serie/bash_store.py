@@ -19,7 +19,7 @@ class BashSeriesManager(SeriesManager):
 
 	config_file_season_name = ".play_conf"	
 	config_file_serie_name = ".play_season"
-	config_file_abs_name = os.path.expanduser("~/.play_season")
+	def_config_file_abs_name = os.path.expanduser("~/.play_season")
 
 	path_to_series_var = "BASE"
 	play_current_episode_var = "CUR"
@@ -28,7 +28,7 @@ class BashSeriesManager(SeriesManager):
 	serie_name_var = "NAME"
 	fps_var = "SUBFPS"
 
-	def __init__(self, config_file = config_file_abs_name):
+	def __init__(self, config_file = def_config_file_abs_name):
 		SeriesManager.__init__(self)
 		self.executer = CommandExecuter()
 		self.config_file_abs_name = config_file 
@@ -46,7 +46,7 @@ class BashSeriesManager(SeriesManager):
 						self.path_to_series_var)
 		base = os.path.expanduser(base)
 		info("reading conf from file : {0}".format(base))
-		debug(base)
+		debug("base path : {}".format(base))
 		if not os.path.exists(base):
 			raise FileNameError(base)
 		return base
@@ -152,10 +152,8 @@ class BashSeriesManager(SeriesManager):
 	def get_serie_list(self):
 		""" Returns the list of series name
 		on the directory """
-		debug("getting serie list")
 		serie_path = self.get_absolute_path()
-		dirs = [ x for x in os.listdir(serie_path) if os.path.isdir(x) ]
-		debug("got serie list")
+		dirs = [ x for x in os.listdir(serie_path) if os.path.isdir(os.path.join(serie_path, x)) ]
 		return dirs
 
 	def create_season_storage(self, serie_name, season_num):

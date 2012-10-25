@@ -112,7 +112,7 @@ def get_serie_and_ep():
 
 MAIN_FILE = """
 NAME='{}'
-BASE='.'
+BASE='{}'
 """
 
 EPISODE_FILE = """
@@ -132,12 +132,12 @@ SEASON='{}'
 MAIN_CONF_FILE = ".play_season"
 
 
-def create_fake_env(name, season, ep):
+def create_fake_env(name, season, ep, direc = "."):
 	season_rep="Season {}".format(season)
 
 	# main config file
 	with open(MAIN_CONF_FILE, 'w') as f:
-		f.write(MAIN_FILE.format(name))
+		f.write(MAIN_FILE.format(name, direc))
 
 	season_path = os.path.join(".", name, season_rep)
 	

@@ -15,10 +15,20 @@ from tests.common_test import create_fake_env, \
 
 class TestBashManager(unittest.TestCase):
 	""" Test case : bash serie manager """
+	cwd = None 
+
+	def get_global_conffifile_fullpath(self):
+		return os.path.join(self.cwd, MAIN_CONF_FILE)
 
 	def setUp(self):
-		create_fake_env('Plop', 2, 2)
-		print("setting up")
+		if self.cwd == None:
+			TestBashManager.cwd = os.getcwd()
+		os.chdir(self.cwd)
+		create_fake_env('ZPlop', 2, 2, self.cwd)
+		create_fake_env('Plop', 2, 2, self.cwd)
+		os.chdir("/")
+	def tearDown(self):
+		os.chdir(self.cwd)
 
 	def assert_equivalent_path(self, path1, path2):
 		abs1 = os.path.abspath(path1)
@@ -28,33 +38,35 @@ class TestBashManager(unittest.TestCase):
 
 
 	def test_serie(self):
-		bash_manager = BashSeriesManager(MAIN_CONF_FILE)
+		bash_manager = BashSeriesManager(self.get_global_conffifile_fullpath())
 		serie_list = bash_manager.get_serie_list()
-		self.assertTrue(bash_manager.get_global_config_file() == MAIN_CONF_FILE)
+		self.assertTrue(bash_manager.get_global_config_file() == self.get_global_conffifile_fullpath())
 		self.assertTrue("Plop" in serie_list)
-
+		self.assertTrue("ZPlop" in serie_list)
+		self.assertTrue(len(serie_list) == 2)
+		
 		serie_name = bash_manager.get_current_serie_name()
 		self.assertTrue( serie_name == "Plop" )
 		
 
 	def test_conffile(self):
 		name = 'Plop'
-		bash_manager = BashSeriesManager(MAIN_CONF_FILE)
-		self.assertTrue(bash_manager.get_global_config_file() == MAIN_CONF_FILE)
+		bash_manager = BashSeriesManager(self.get_global_conffifile_fullpath())
+		self.assertTrue(bash_manager.get_global_config_file() == self.get_global_conffifile_fullpath())
 		
-		expected_path = "."
+		expected_path = self.cwd # "."
 		got_path = bash_manager.get_absolute_path()
-
+		print "expec {}, got {}".format(expected_path, got_path)
 		self.assert_equivalent_path(got_path, expected_path)
 
 		got_file = bash_manager.get_serie_configfile(name)
-		expected_file = os.path.join(name, ".play_season")
+		expected_file = os.path.join(self.cwd, os.path.join(name, ".play_season"))
 
 		self.assert_equivalent_path(got_file, expected_file)
 		return True
 
 	def test_episode(self):
-		bash_manager = BashSeriesManager(MAIN_CONF_FILE)
+		bash_manager = BashSeriesManager(self.get_global_conffifile_fullpath())
 		datas = BashManagedSeriesData(bash_manager)
 		
 		serie = datas.get_current_serie()
@@ -71,17 +83,17 @@ class TestBashManager(unittest.TestCase):
 		self.assertTrue(cur_episode == 2)
 
 	def test_manager(self):
-		bash_manager = BashSeriesManager(MAIN_CONF_FILE)
+		bash_manager = BashSeriesManager(self.get_global_conffifile_fullpath())
 		# datas = BashManagedSeriesData(bash_manager)
 		got = bash_manager.get_path_to_season("Plop", 2)
-		self.assert_equivalent_path(got, "Plop/Season 2")
+		self.assert_equivalent_path(got, os.path.join(self.cwd,"Plop/Season 2"))
 
 	def test_change_serie(self):
-		bash_manager = BashSeriesManager(MAIN_CONF_FILE)
+		bash_manager = BashSeriesManager(self.get_global_conffifile_fullpath())
 		# bash_
 
 	def test_pattern(self):
-		bash_manager = BashSeriesManager(MAIN_CONF_FILE)
+		bash_manager = BashSeriesManager(self.get_global_conffifile_fullpath())
 
 		pattern = bash_manager.get_glob_pattern(1, 1, ["avi", "flv"])
 		self.assertTrue(re.search(pattern, 'Bidou s01e01.avi'))
