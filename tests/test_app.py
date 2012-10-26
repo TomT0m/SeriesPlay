@@ -9,7 +9,11 @@ from gi.repository import Gtk #pylint: disable=E0611
 from ui.videotorrent_list_control import VideoFinderControler
 
 from app.main_app import App
+from app.controler import PlayEventManager
 
+from tests.common_test import create_fake_env, MAIN_CONF_FILE
+
+from serie.bash_store import BashSeriesManager, BashManagedSerie, BashManagedSeriesData
 class FakeApp(object):
 	""" Fake testing app """
 	def __init__(self):
@@ -40,6 +44,9 @@ class TestVideotorrentControler(unittest.TestCase):
 		""" setting up """
 		print("setting up")
 
+		create_fake_env('ZPlop', 2, 2)
+		create_fake_env('Plop', 3, 2)
+
 	def test_1(self):
 		""" Fake app creation """
 		app = create_app()
@@ -47,4 +54,12 @@ class TestVideotorrentControler(unittest.TestCase):
 		combo_box = app.getitem("SerieListCombo")
 		combo_box.set_active(2)
 		return control
-	
+
+	def test_change_serie(self):
+		app = create_app()
+		bash_manager = BashSeriesManager(MAIN_CONF_FILE)
+		serie = BashManagedSeriesData(bash_manager)
+		control = PlayEventManager(app, serie)
+		control.update_serie_view()
+		# app.
+		pass

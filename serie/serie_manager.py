@@ -138,9 +138,10 @@ class Serie:
 		""" Current episode getter """
 		return self.num_episode
 
-	def set_current_season_number(self, num):
-		""" Current season setter """
-		self.season_num = num
+	
+	#def set_current_season_number(self, num):
+	#	""" Current season setter """
+	#	self.season_num = num
 
 	def get_season(self, number):
 		pass
@@ -228,9 +229,9 @@ class Season(object):
 		"""
 		pass
 
-	@property
-	def episode_number(self):
-		return self._episode_number
+	#@property
+	#def episode_number(self):
+	#	return self._episode_number
 
 class SeriesData(object):
 	""" Base class for series set"""
@@ -245,10 +246,11 @@ class SeriesData(object):
 
 	@property
 	def current_serie(self):
+		""" getter : selected serie """
 		return self.series[self.current_serie_name]
 
 	@current_serie.setter
-	def set_current_serie_by_name(self, serie):
+	def current_serie(self, serie):
 		""" Sets current serie object """
 		self.current_serie_name = serie
 

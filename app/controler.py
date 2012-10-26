@@ -374,7 +374,7 @@ class PlayEventManager:
 		itera = widg.get_active_iter()
 		if itera != None:
 			val = widg.get_model().get_value(widg.get_active_iter(), 0)
-			self.serie_model.name = val
+			self.serie_model.current_serie = val
 			self.update_serie_view()
 
 	def put_monitor_on_saison(self):
@@ -399,7 +399,7 @@ class PlayEventManager:
 			"""
 		logging.info("saison courante num changed ?")
 		self.serie_model.get_current_serie()\
-				.set_current_season_number(int(widg.get_value()))
+				.season_num = int(widg.get_value())
 		self.update_season_view()
 		self.put_monitor_on_saison()
 
@@ -411,7 +411,7 @@ class PlayEventManager:
 		"""
 		logging.info("ep courant num changed ?")
 		self.serie_model.get_current_serie()\
-				.set_current_episode_number(int(widg.get_value()))
+				.episode_num = int(widg.get_value())
 		self.update_episode_view()
 	
 	def update_skip_time(self, widg):
