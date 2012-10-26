@@ -290,7 +290,7 @@ function play {
 		fi
 	else
 		return 1
-	fi
+	fi &>/dev/null
 }
 #######################
 #######################

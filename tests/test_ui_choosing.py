@@ -1,11 +1,11 @@
 #!/usr/bin/python
 #encoding: utf-8
-""" Module testing Torrent List Controler """
+""" Module testing Torrent List Controller """
 
 from twisted.trial import unittest
 # import ui
 from gi.repository import Gtk #pylint: disable=E0611 
-from ui.videotorrent_list_control import VideoFinderControler
+from ui.videotorrent_list_control import VideoFinderController
 
 class FakeApp(object):
 	""" Fake testing app """
@@ -25,8 +25,8 @@ def create_app():
 	""" Fake App factory function """
 	return FakeApp()
 
-class TestVideotorrentControler(unittest.TestCase):
-	""" Controler testcase :
+class TestVideotorrentController(unittest.TestCase):
+	""" Controller testcase :
 	* create app
 	* empty selection
 	* selection
@@ -39,7 +39,7 @@ class TestVideotorrentControler(unittest.TestCase):
 	def test_1(self):
 		""" Fake app creation """
 		app = create_app()
-		control = VideoFinderControler(app)
+		control = VideoFinderController(app)
 		return control
 	
 	def test_empty(self):

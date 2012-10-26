@@ -83,7 +83,7 @@ class TestServer(unittest.TestCase):
 			wait_for_connection = protoc.ep_request(self.episode)\
 					.addCallback(got_results)
 			self.set_protocol(protoc)
-			print "protoq {}".format(self.protoc)
+			#print "protoq {}".format(self.protoc)
 			self.connected = True
 			return wait_for_connection
 
@@ -150,11 +150,9 @@ class TestServer(unittest.TestCase):
 	def test_object_client(self):
 		""" Testing the object client 'NetworkEpisodeVideoFinder'
 		as a whole"""
-		# def choose():
-		#		self.candidates = None
-		finder = NetworkEpisodeVideoFinder(self.episode)
+		finder = NetworkEpisodeVideoFinder()
 		finder.search_newep(self.episode)
-		# self.res = None
+		
 		founded = OnEventDeferred(finder, "candidates_found")\
 				.addCallback(self.set_candidates)
 		def choose(res):
@@ -174,10 +172,11 @@ class TestServer(unittest.TestCase):
 
 	def test_search_and_choose(self):
 		""" Whole process """
-		ep_finder = NetworkEpisodeVideoFinder(self.episode)
+		ep_finder = NetworkEpisodeVideoFinder()
 		def print_results(results):
 			""" presentation callback"""
-			print("Résultats {}".format(len(results)))
+			#print("Résultats {}".format(len(results)))
+			pass
 		def catch_err(res):
 			""" error callback """
 			print "err catched {}".format(res)

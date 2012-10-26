@@ -65,6 +65,11 @@ class CommandLineGenerator(object):
 
 class ConfigManager:
 	""" A config object, associated with a conf file """
+	class KeyException(Exception):
+		""" Exception raised on unknown key reading"""
+		def __init__(self, msg):
+			Exception.__init__(self, msg)
+
 	def __init__(self, config_file_name):
 		self.config_file_name = config_file_name
 
@@ -81,7 +86,9 @@ class ConfigManager:
 		""" Returns the value of integer var_name in this config """
 		res = self.read_num_conf_var(self.config_file_name, var_name)
 		if res == None:
-			raise Exception("Config: Not a number Key : {} in file {}".format(var_name, self.config_file))
+			msg = "Config: Not a number Key : {} in file {}"\
+					.format(var_name, self.config_file)
+			raise Exception(msg)
 		return res
 
 # config management and storage 
@@ -92,8 +99,8 @@ class ConfigManager:
 		returns VALUE
 		"""
 
-		with open(config_file_path,'r') as f:
-			lines = f.read()
+		with open(config_file_path,'r') as fil:
+			lines = fil.read()
 			
 			regstr = u"^{}=('(.*)'|\"(.*)\")$".format(var_name)
 			regexp = re.compile(regstr, re.M)
@@ -105,7 +112,10 @@ class ConfigManager:
 				else:
 					return res.group(3)
 			else:
-				raise Exception("Config Key not found : {} in file {}".format(var_name, config_file_path))
+				raise ConfigManager.KeyException(
+					"Config Key not found : {} in file {}"\
+							.format(var_name, 
+								config_file_path))
 
 	@classmethod
 	def write_conf_var(cls, config_file_path, var_name, value):
@@ -137,7 +147,6 @@ class ConfigManager:
 			debug("not an int")
 			raise Exception("Config parse error {} { : not an int}"\
 					.format(config_file_path, var_name))
-			return None
 
 
 if __name__ == "__main__":

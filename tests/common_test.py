@@ -2,16 +2,16 @@
 
 """ utilies for unittesting """
 
-from serie.bash_store import \
-		ConfigManager, BashManagedSerie, BashManagedEpisode, \
-		BashManagedSeason
-from serie.serie_manager import SeriesManager
+from serie.fs_store import \
+		ConfigManager, FsManagedSerie, FsManagedEpisode, \
+		FsManagedSeason
+from serie.serie_manager import SeriesStore
 
 from utils.cli import CommandExecuter, CommandLineGenerator
 
 import os
 
-class DummySeriesManager(SeriesManager):
+class DummySeriesStore(SeriesStore):
 
 	config_file_season_name = ".play_conf"	
 	config_file_serie_name = ".play_season"
@@ -25,7 +25,6 @@ class DummySeriesManager(SeriesManager):
 	fps_var = "SUBFPS"
 
 	def __init__(self):
-		SeriesManager.__init__(self)
 		self.executer = None #command_executer()
 
 # paths generator
@@ -103,10 +102,10 @@ class DummySeriesManager(SeriesManager):
 
 
 def get_serie_and_ep():
-	serie_manager = DummySeriesManager()
-	serie = BashManagedSerie("Dexter", serie_manager)
-	season = BashManagedSeason(serie, 5)
-	episode = BashManagedEpisode(serie, season, 1)
+	serie_manager = DummySeriesStore()
+	serie = FsManagedSerie("Dexter", serie_manager)
+	season = FsManagedSeason(serie, 5)
+	episode = FsManagedEpisode(serie, season, 1)
 
 	return (serie, episode)
 

@@ -22,13 +22,15 @@ if options.debug:
 	logging.basicConfig(level=logging.DEBUG)
 
 
+from snakeguice import Injector
 
-from app.main_app import App		
+from app.main_app import AppModule, App	
 
 
 def main():
 	""" Main function for script """
-	app = App()
+	injector = Injector(AppModule())
+	app = App(injector)
 	logging.debug("App constructed {}".format(app))
 	reactor.run()#pylint: disable = E1101
 

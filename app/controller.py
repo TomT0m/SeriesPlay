@@ -1,11 +1,11 @@
 #! /usr/bin/python
 #encoding: utf-8
-""" Main App controler : callback functions """
+""" Main App controller : 
+	* callback functions """
 
 # system imports
 import os
 import subprocess
-# import numbers
 import threading
 
 import logging
@@ -23,56 +23,125 @@ from twisted.internet import reactor
 
 from gobj_player.gobj_player import PlayerStatus 
 from datasource.play_subdl import \
-	thr_sub_dl 
-
+	thr_sub_dl
+from datasource.play_subdl import Subdownloader
+from datasource.video_finder_client import NetworkEpisodeVideoFinder
 
 import ui.subtitles, ui.ui_utils, ui.videotorrent_list_control
-# from ui import subtitles
-from utils.cli import CommandExecuter, CommandLineGenerator
-from serie.serie_manager import Episode
+from ui.videotorrent_list_control import VideoFinderController
 
-class PlayEventManager:
-	""" Class regrouping all callbacks and
+from utils.cli import CommandExecuter, CommandLineGenerator
+
+from serie.serie_manager import Episode
+from snakeguice.modules import Module
+
+from utils.factory import FactoryFactory
+
+class ExternalPlayerHandler(object):
+	""" Interface for external player handling 
+
+	behavior:
+	supposed to call controller.end_of_play() at end of playing
+	
+	TODO: replace with a cleaner version that takes an episode object as parameter
+	"""
+	def execute_play_command(self, controller, cmd, cwd = None):
+		""" Method to call to launch player """
+		raise NotImplementedError("Interface")
+	
+class StdExternalPlayerHandler(object):
+	""" Implementation with legacy bash script """
+	def __init__(self):
+		self.controller = None
+		self.handle_file = None
+		self.handle_end = None
+		self.current_process = None
+
+	def execute_play_command(self, controller, cmd, cwd = None):
+		""" Launches cmd command
+		and install monitors for finding when it stops and
+		when it outputs to avoid UI hangouts
+		"""
+		
+		self.controller = controller
+		logging.debug("executing ... >>>{0}<<<".format(cmd))
+		process = subprocess.Popen(cmd, \
+				shell = False, bufsize = 0, stdout = subprocess.PIPE, cwd = cwd)
+		self.current_process = process.stdout
+		logging.debug("launched")
+		
+		self.handle_file = GObject.io_add_watch(
+				self.current_process, GObject.IO_HUP, 
+				self.end_of_play, priority = GObject.PRIORITY_DEFAULT_IDLE)
+		self.handle_end = GObject.io_add_watch(
+				self.current_process, GObject.IO_IN, 
+				self.read, priority = GObject.PRIORITY_DEFAULT_IDLE)
+		self.current_process = process
+
+		return True
+
+	def end_of_play(self, widg, condition = None):#pylint: disable=W0613
+		""" Callbacks called when the MPlayer process stops
+		Action : reactivates buttons, 
+		launches UI updates for next episode, update models
+		"""
+		logging.info("end of play !")
+		
+		self.current_process = None
+		GObject.source_remove(self.handle_file)
+		GObject.source_remove(self.handle_end)
+
+		self.controller.end_of_play()
+
+		return False	
+
+	def read(self, widg, condition):#pylint: disable=W0613
+		""" Eats line from Mplayer process"""
+		if self.current_process != None :
+			self.current_process.stdout.read(1000)
+			if self.current_process.poll() != None :
+				pass
+			return True
+		else :
+			logging.debug("callback deletion")
+			return False
+
+
+class VideoFinderModule(Module):
+	""" Module : binding a NetworkEpisodeVideoFinder """
+	def configure(self, binder):
+		""" Module setup """
+		facto = FactoryFactory(NetworkEpisodeVideoFinder)
+		binder.bind(FactoryFactory, to_instance = facto)
+
+class ControllerModule(Module):
+	""" Controller module binder"""
+	def configure(self, binder):
+		""" Binding congiguration : 
+			* VideoFinderController Needed"""
+		self.install(binder, VideoFinderModule())
+		binder.bind(VideoFinderController, to = VideoFinderController)
+		binder.bind(ExternalPlayerHandler, to = StdExternalPlayerHandler)
+
+class PlayEventManager(object):
+	""" Class regrouping l callbacks and
 	data updating functions
 	"""
 
-	def update_serie_list(self, 
-			monitor, fichier, data, event): #pylint: disable=W0613
-		""" Callbacks when a new file is added in the Serie directory,
-		Action : updates the Serie Combo
-		"""
-		logging.info("Recherche d'une nouvelle série")
-		model = self.iface.getitem("SerieListCombo").get_model()
-		serie_list = self.manager.get_serie_list()
-		new_items = [x for x in serie_list if not self.serie_model.series.has_key(x) ]
-		for new_serie in new_items:
-			self.serie_model.add_serie(new_serie)
-			model.append([new_serie])
-		
-	def update_subs_and_file(self, monitor, fichier, data, event):\
-			#pylint: disable=W0613
-		""" Callbacks when a new file is added on the Season directory
-		Action : calls update_serie
-		"""
-		logging.info("Recherche d'un nouveau sub / vidéo ?")
-		if ( event == Gio.FileMonitorEvent.CREATED ):
-			self.update_episode_view()
-
-	def open_filemanager(self, widg):#pylint: disable=W0613
-		""" Opens a Nautilus Window on current season directory"""
-		command_launch = CommandExecuter()
-		command_gen = CommandLineGenerator("xdg-open")
-		rep = self.serie_model.get_current_serie().get_path_to_current_season()
-		command_gen.add_option_single(rep)
-		command_launch.get_output(command_gen.get_command())
-
-	def __init__(self, iface, serie_model):
-		self.iface = iface
+	def __init__(self, iface, serie_model, injector):
+		self.app = iface
 		self.current_process = None
+		self.injector = injector
+		
+		# injected classes
+		self.player_handler = injector.get_instance(ExternalPlayerHandler)
+		self.video_finder_controller = injector.get_instance(VideoFinderController)
 		
 		logging.debug ("creating event manager")
+		
 		self.play_buttons = ["Play", "SlaveMplayerPlay", "DlSub", "OpenRep"]
 		self.serie_model = serie_model
+		# TODO : check if necessary
 		# self.update_serie()
 
 		logging.debug ("Setting up file monitoring ... ")
@@ -96,7 +165,7 @@ class PlayEventManager:
 
 		column.set_cell_data_func(cellpbtext, ui.subtitles.subtitle_line_text_getter)
 
-		sub_treeview = self.iface.getitem("SubtitlesTreeView")
+		sub_treeview = self.app.getitem("SubtitlesTreeView")
 		sub_treeview.append_column(time)
 		sub_treeview.append_column(column)
 
@@ -108,56 +177,58 @@ class PlayEventManager:
 		# init of video finder window
 		ui.videotorrent_list_model\
 				.init_torrentlist_viewer(\
-				self.iface.getitem("TorrentList"))
+				self.app.getitem("TorrentList"))
 
 		## MPlayer subwindow		
 
 # self.MPlayer = mplayer_slave.player(self.\
 		#iface.getitem("VideoZone").window.xid)
 # self.MPlayer = mplayer_slave.player(None) 
-# self.iface.getitem("VideoZone").window.xid)
-# logging.info ("XID :", self.iface.getitem("VideoZone").window.xid)
+# self.MPlayer = mplayer_slave.player(None) 
+# self.app.getitem("VideoZone").window.xid)
+# logging.info ("XID :", self.app.getitem("VideoZone").window.xid)
 # self.payer_status = None
 
 		# Gio File watching handles
 		self.handle_file = None
 		self.handle_end = None
-		self.subtitle_downloader = None
+		self.subtitle_downloader = injector.get_instance(Subdownloader)
 		self.monitor_serie = None # making an attribute to prevent gc
 		self.manager = None
 
-		
-	def execute_play_command(self, cmd, cwd = None):
-		""" Launches cmd command
-		and install monitors for finding when it stops and
-		when it outputs to avoid UI hangouts
+		self.update_serie_view()
+
+	def update_serie_list(self, 
+			monitor, fichier, data, event): #pylint: disable=W0613
+		""" Callbacks when a new file is added in the Serie directory,
+		Action : updates the Serie Combo
 		"""
+		logging.info("Recherche d'une nouvelle série")
+		logging.info("Recherche d'une nouvelle série")
+		model = self.app.getitem("SerieListCombo").get_model()
+		serie_list = self.manager.get_serie_list()
+		new_items = [x for x in serie_list if not self.serie_model.series.has_key(x) ]
+		for new_serie in new_items:
+			self.serie_model.add_serie(new_serie)
+			model.append([new_serie])
+		
+	def update_subs_and_file(self, monitor, fichier, data, event):\
+			#pylint: disable=W0613
+		""" Callbacks when a new file is added on the Season directory
+		Action : calls update_serie
+		"""
+		logging.info("Recherche d'un nouveau sub / vidéo ?")
+		if ( event == Gio.FileMonitorEvent.CREATED ):
+			self.update_episode_view()
 
-		logging.debug("executing ... >>>{0}<<<".format(cmd))
-		process = subprocess.Popen(cmd, \
-				shell = False, bufsize = 0, stdout = subprocess.PIPE, cwd = cwd)
-		self.current_process = process.stdout
-		logging.debug("launched")
-		self.playing()
-		self.handle_file = GObject.io_add_watch(
-				self.current_process, GObject.IO_HUP, 
-				self.end_of_play, priority = GObject.PRIORITY_DEFAULT_IDLE)
-		self.handle_end = GObject.io_add_watch(
-				self.current_process, GObject.IO_IN, 
-				self.read, priority = GObject.PRIORITY_DEFAULT_IDLE)
-		self.current_process = process
-
-	def read(self, widg, condition):#pylint: disable=W0613
-		""" Eats line from Mplayer process"""
-		if self.current_process != None :
-			self.current_process.stdout.read(1000)
-			if self.current_process.poll() != None :
-				pass
-			return True
-		else :
-			logging.debug("callback deletion")
-			return False
-
+	def open_filemanager(self, widg):#pylint: disable=W0613
+		""" Opens a Nautilus Window on current season directory"""
+		command_launch = CommandExecuter()
+		command_gen = CommandLineGenerator("xdg-open")
+		rep = self.serie_model.get_current_serie().get_path_to_current_season()
+		command_gen.add_option_single(rep)
+		command_launch.get_output(command_gen.get_command())
+		
 	def play(self, widg):#pylint: disable=W0613
 		""" Callback when a play is requested
 		** Unused currently **, probably obsolete
@@ -165,33 +236,40 @@ class PlayEventManager:
 		logging.info("playing ... " + self.serie_model.get_current_serie().name)
 		if self.current_process == None :
 			serie = self.serie_model.get_current_serie()
-			#logging.info (self.serie_model.get_current_serie().nom)
+			
 			command = CommandLineGenerator("serie_next")
 			chemin_serie = self.serie_model.get_current_serie().get_path_to_serie()
-			command.add_option_param("-s", unicode(serie.get_current_season_number()))
-			command.add_option_param("-e", unicode(serie.get_current_episode_number()))
+			
+			epi = serie.season.episode
+
+			command.add_option_param("-s", unicode(serie.season.number))
+			command.add_option_param("-e", unicode(epi.number))
 			command.add_option_param("-G", unicode(serie.get_skip_time()))
-			command.add_option_param("-f", serie.get_fps())
+			fps = serie.get_fps()
+			if fps:
+				command.add_option_param("-f", unicode(fps))
 			command.add_option_param("-d", unicode(serie.get_decay_time()))
-			command.add_option_param("-t", unicode(serie.get_subtitle_file()))
+			command.add_option_param("-t", unicode(epi.get_subtitle_file()))
+			
+			#TODO: replace this legacy code
+
 			os.environ["SEASON"] = self.serie_model.get_current_serie().name
-			self.execute_play_command(command.get_command(), cwd = chemin_serie)
+			
+			self.player_handler.execute_play_command(self, command.get_command(), cwd = chemin_serie)
 	
-	def end_of_play(self, widg, condition = None):#pylint: disable=W0613
+	def end_of_play(self, widg = None, condition = None):#pylint: disable=W0613
 		""" Callbacks called when the MPlayer process stops
 		Action : reactivates buttons, 
 		launches UI updates for next episode, update models
 		"""
 		logging.info("end of play !")
 		map(lambda nom: 
-			self.iface.getitem(nom).set_sensitive(True),
+			self.app.getitem(nom).set_sensitive(True),
 			self.play_buttons)
 		self.current_process = None
-		if not self.iface.getitem("SetupModeCheck").get_active():
+		if not self.app.getitem("SetupModeCheck").get_active():
 			self.serie_model.get_current_serie().on_seen_episode()
 			self.update_serie_view()
-		GObject.source_remove(self.handle_file)
-		GObject.source_remove(self.handle_end)
 		return False	
 	
 	def play_with_sub(self, widg):#pylint: disable=W0613
@@ -207,20 +285,20 @@ class PlayEventManager:
 		logging.info("playing in a slave MPlayer !!")
 #if self.MPlayer == None:
 	# self.MPlayer = mplayer_slave.player(\
-	#		self.iface.getitem("VideoZone").window.xid)
+	#		self.app.getitem("VideoZone").window.xid)
 #	self.MPlayer = mplayer_slave.player() 
-	#self.iface.getitem("VideoZone").window.xid)
+	#self.app.getitem("VideoZone").window.xid)
 #	pass
 # else:
 		serie = self.serie_model.get_current_serie()
 		filename = serie.get_absolute_filename(serie.get_video_list()[0])
 		path = serie.get_path_to_current_season()
-		subfile = path + serie.get_subtitle_list()[0]
+		subfile = path + serie.season.episode.get_subtitle_list()[0]
 		if filename != None :
 			self.player_status.play(filename)
 			(width, height)= self.player_status.get_video_resolution()
 			logging.debug("size : {0}x{1}".format(width, height))
-			drawing_area = self.iface.getitem("VideoZone")
+			drawing_area = self.app.getitem("VideoZone")
 			drawing_area.set_size_request(width, height)
 			# gdkwindow = drawing_area.window
 			logging.debug("trying to go fullscreen ...")
@@ -232,16 +310,14 @@ class PlayEventManager:
 			status = self.player_status
 			status.set_playing()
 			status.set_subtitles(subfile)
-			status.connect("play_ended", self.end_of_play)#pylint: disable = E1101
+			#pylint: disable = E1101
+			status.connect("play_ended", self.end_of_play)
 		
+		self.update_serie_view()	
 
-	#def prompted_play(self, widg):#pylint: disable=W0613
-	#	if self.current_process == None :
-	#		self.execute_play_command(["series","-p"])
-
-	def set_subdownloader(self, subdl):
-		"""Setter for subdownloader attribute"""
-		self.subtitle_downloader = subdl
+	#def set_subdownloader(self, subdl):
+	#	"""Setter for subdownloader attribute"""
+	#	self.subtitle_downloader = subdl
 
 	def search_subtitles(self, btn):#pylint: disable=W0613
 		"""TODO : Upgrade to twisted
@@ -252,7 +328,6 @@ class PlayEventManager:
 		logging.debug("searching ... in a thread")
 		chemin_serie = self.serie_model.get_current_serie()\
 				.get_path_to_current_season()
-		# nom_serie = self.serie_model
 		arguments = [self.serie_model, self.subtitle_downloader]
 		methode = thr_sub_dl		
 		subdl_worker = threading.Thread(\
@@ -277,7 +352,7 @@ class PlayEventManager:
 		current time in the video, and selected subtitle time
 		"""
 		# getting datas
-		treeview = self.iface.getitem("SubtitlesTreeView")
+		treeview = self.app.getitem("SubtitlesTreeView")
 		(model, itera)= treeview.get_selection().get_selected()
 		time = model.get_value(itera, 0).start.ordinal / 1000
 		in_video_time = self.player_status.get_current_time()
@@ -296,9 +371,11 @@ class PlayEventManager:
 	def playing(self):
 		""" Action function : sets the interface in playing mode """
 		map(lambda nom: 
-			self.iface.getitem(nom).set_sensitive(False), self.play_buttons)
+			self.app.getitem(nom).set_sensitive(False), self.play_buttons)
 		return ( self.current_process == None )
 	
+	# def init_serie_view(self):
+
 	def update_serie_view(self):
 		""" Callback when [lots of calls ]
 		Action : 
@@ -321,38 +398,39 @@ class PlayEventManager:
 		serie = (self.serie_model.current_serie)
 		newsaison = int(serie.season_num)
 
-		spin = self.iface.getitem("numSaisonSpin")
+		spin = self.app.getitem("numSaisonSpin")
 		spin.set_value(newsaison)
 		
 		self.update_episode_view()
 
+	@property
+	def serie(self):
+		""" getter for current selected serie""" 
+		return self.serie_model.current_serie
+
+	
 	def update_episode_view(self):
 		""" Callback when a new episode must be shown
 		Action :
 		* update episode number
 		* loads sutitles & video name candidates
 		"""
-		serie = (self.serie_model.get_current_serie())
-		num = serie.get_current_episode_number()
+		serie = self.serie_model.current_serie
+		newep =  serie.season.episode.number
 		
-		if num != None :
-			newep = num 
-		else:
-			newep = 1
-
-		self.iface.getitem("numEpSpin").set_value(newep)
-		self.iface.getitem("skipTimeSpin").set_value(serie.get_skip_time())
-		self.iface.getitem("decayTimeSpin").set_value(serie.get_decay_time())
+		self.app.getitem("numEpSpin").set_value(newep)
+		self.app.getitem("skipTimeSpin").set_value(serie.get_skip_time())
+		self.app.getitem("decayTimeSpin").set_value(serie.get_decay_time())
 
 		vid_list = serie.get_video_list()
 		logging.info("Videos !!! nb:{}".format(len(vid_list)))
 		logging.info(vid_list)
 
 		if len (vid_list) > 0 :
-			self.iface.getitem("NomficLabel").set_text(vid_list[0])
+			self.app.getitem("NomficLabel").set_text(vid_list[0])
 		else:
-			self.iface.getitem('')
-			episode = Episode(serie, serie.season, num)
+			# self.app.getitem('')
+			episode = Episode(serie, serie.season, newep)
 			self.add_video_finder(episode)
 		self.update_subs()
 
@@ -362,8 +440,8 @@ class PlayEventManager:
 	def add_video_finder(self, episode):
 		""" Ubuesque code cascade & design trigerring
 		"""
-		controler = ui.videotorrent_list_control.VideoFinderControler(self)
-		controler.add_video_finder(episode)
+		controller = self.video_finder_controller
+		controller.add_video_finder(self.app, episode)
 
 	def selected_serie_changed(self, widg):
 		"""Callback when selected UI série changes
@@ -374,7 +452,7 @@ class PlayEventManager:
 		itera = widg.get_active_iter()
 		if itera != None:
 			val = widg.get_model().get_value(widg.get_active_iter(), 0)
-			self.serie_model.name = val
+			self.serie_model.current_serie = val
 			self.update_serie_view()
 
 	def put_monitor_on_saison(self):
@@ -391,27 +469,29 @@ class PlayEventManager:
 			self.monitor_serie = path.monitor_directory(Gio.FileMonitorFlags.NONE, None)
 			self.monitor_serie.connect("changed", self.update_subs_and_file)
 
-	def update_num_saison(self, widg):
+	def update_season_number(self, widg):
 		""" Callback when selected Season changes
 		Actions :
 			* update Model
 			* Triggers UI update
 			"""
 		logging.info("saison courante num changed ?")
-		self.serie_model.get_current_serie()\
-				.set_current_season_number(int(widg.get_value()))
+		self.serie_model.current_serie.season = int(widg.get_value())
+		
 		self.update_season_view()
 		self.put_monitor_on_saison()
 
-	def update_num_episode(self, widg):
+	def update_episode_number(self, widg):
 		""" Callback When current episode changes
 		Actions :
 		* updates Model
 		* update UI accordingly
 		"""
 		logging.info("ep courant num changed ?")
-		self.serie_model.get_current_serie()\
-				.set_current_episode_number(int(widg.get_value()))
+		self.serie_model.current_serie.season.episode = int(widg.get_value())
+		
+		logging.debug(self.serie_model.current_serie.season.episode.number)
+
 		self.update_episode_view()
 	
 	def update_skip_time(self, widg):
@@ -420,7 +500,7 @@ class PlayEventManager:
 		* updates Model 
 		"""
 		logging.info("skip time changed ?")
-		self.serie_model.get_current_serie().set_skip_time(int(widg.get_value()))
+		self.serie_model.serie.set_skip_time(int(widg.get_value()))
 
 	def update_decay_time(self, widg):
 		""" Callback when decay time changes
@@ -434,10 +514,11 @@ class PlayEventManager:
 	def update_fps(self, widg):
 		""" Callback when User changes the FPS value on the view
 		Action : updates Model
+		TODO: delete or debug
 		"""
 		logging.info("fps time changed ?")
-		entry = widg.get_child()
-		val = entry.get_text() 
+		# entry = widg.get_child()
+		val = None 
 		logging.info("changed" + val )
 		self.serie_model.get_current_serie().set_fps(val)
 
@@ -458,24 +539,25 @@ class PlayEventManager:
 					val)
 			
 			subtitle_file_model = ui.subtitles.SubtitlesStore(absolute_subfile)
-			self.iface.getitem("SubtitlesTreeView")\
+			self.app.getitem("SubtitlesTreeView")\
 					.set_model(subtitle_file_model.get_model())
 
 	def update_subs(self):
 		""" Callback The available subtitles are modified 
 		Action : updates Model, updtates ui
 		"""
-		liste = self.serie_model.get_current_serie().get_subtitle_list()
-
+		print("loading subtitles")
+		liste = self.serie_model.current_serie.season.episode.get_subtitle_list()
+		
 		logging.info("Subs !! nb:{}".format(len(liste)))
 		if len(liste) == 0:
 			self.search_subtitles(None)
 
 		ui.ui_utils.populate_combo_with_items(
-				self.iface.getitem("CandidateSubsCombo"), 
+				self.app.getitem("CandidateSubsCombo"), 
 				liste)
-		self.update_subtitle_file(self.iface.getitem("CandidateSubsCombo"))		
-
+		self.update_subtitle_file(self.app.getitem("CandidateSubsCombo"))		
+		print("loaded")
 	def end(self, widg):
 		""" Callback to clean application & exit """
 		

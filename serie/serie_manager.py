@@ -2,19 +2,18 @@
 #encoding:utf-8
 """ managing data about series """
 
-# from utils.cli import CommandExecuter, CommandLineGenerator, \
-# 		ConfigManager, FileNameError
-
-# from trace import trace
 
 
 from logging import debug, info
+from snakeguice import inject
+from snakeguice.injector import IInjector
 
-class SeriesManager(object):
+class SeriesStore(object):
 	""" Base class model for 
 	stored informations retrieval
 	"""
-
+	def __init__(self):
+		raise NotImplementedError("SeriesStore is abstract") 
 	def get_stored_current_season_number(self, nom):
 		""" Returns season number of current serie """
 		pass
@@ -41,7 +40,7 @@ class SeriesManager(object):
 		pass
 
 
-class Episode:
+class Episode(object):
 	""" Base class for episode information storage 
 	"""
 	def __init__(self, serie, season, num_ep):
@@ -54,9 +53,12 @@ class Episode:
 		self.subtitle_file_name = None
 	@property
 	def season(self):
+		""" getter for episode's Season object """
 		return self._season
+
 	@property
 	def number(self):
+		""" Getter for episode number in season """
 		return self.num_ep
 
 	def get_skip_time(self):
@@ -105,23 +107,35 @@ class Episode:
 		pass
 
 
-class Serie:
+class Serie(object):
 	""" Base class for defining a serie """
 	def __init__(self, name):
-		self.name = name
+		self._name = name
 		self._season_num = self.get_stored_current_season_number()
 		self.num_episode = self.get_next_episode_num()
 		self.skiptime = 0
 		self.decaytime = 0
 		self.fps = ""
 		self.subtitle_file_name = None
+	
+	@property
+	def name(self):
+		""" name getter """
+		return self._name
 
 	@property
 	def season_num(self):
+		""" Getter for current season number """
 		return self._season_num
 
+	@season_num.setter
+	def season_num(self, num):
+		""" setter for current season number"""
+		self._season_num = num
+	
 	@property
 	def episode_num(self):
+		""" Getter for next episode in current season """
 		return self.get_next_episode_num()
 
 	def get_next_episode_num(self):
@@ -138,16 +152,15 @@ class Serie:
 		""" Current episode getter """
 		return self.num_episode
 
-	def set_current_season_number(self, num):
-		""" Current season setter """
-		self.season_num = num
-
+	
 	def get_season(self, number):
+		""" Getter for season number "number" of serie"""
 		pass
 
 	@property
 	def season(self):
-		return self.get_season(self.get_current_season_number())
+		""" Getter for current season object"""
+		return self.get_season(self.season_num)
 
 	def set_current_episode_number(self, num):
 		""" Current episode setter"""
@@ -209,16 +222,20 @@ class Serie:
 		pass	
 
 class Season(object):
-	def __init__(self, serie, number):
+	""" Season object"""
+	def __init__(self, serie, number, ep_number):
 		self._serie = serie
 		self._number = number
+		self._ep_number = ep_number
 
 	@property
 	def number(self):
+		""" Season number getter """
 		return self._number
 
 	@property
 	def serie(self):
+		""" serie getter """
 		return self._serie
 
 	@property
@@ -227,28 +244,46 @@ class Season(object):
 		getter for current episode object
 		"""
 		pass
-
 	@property
-	def episode_number(self):
-		return self._episode_number
+	def ep_number(self):
+		""" Current episode number in season property getter """
+		return self._ep_number
+
+	@ep_number.setter
+	def ep_number(self, number):
+		""" Setter """
+		self._ep_number = number
+
 
 class SeriesData(object):
 	""" Base class for series set"""
-	def __init__(self, current_serie, series):
+	@inject(injector = IInjector)
+	def __init__(self, injector):
 		self.series = {}
-		self.current_serie_name = current_serie
-	
-		for serie in series :
-			info("Creating serie {}".format(serie))
-			self.series[serie] = None
-		self.add_serie(current_serie)	
+		self.injector = injector
+		
+		self.store = injector.get_instance(SeriesStore)
+		
+
+		self.current_serie_name = self.store.get_current_serie_name()
+		lseries = self.store.get_serie_list()
+
+		info("Creating series ...") # .format(nserie))
+		for nserie in lseries :
+			info("Creating serie {}".format(nserie))
+			self.series[nserie] = self.add_serie(nserie)
 
 	@property
 	def current_serie(self):
+		""" getter : selected serie """
+		res = self.series[self.current_serie_name]
+		if not res:
+			self.add_serie(self.current_serie_name)
+
 		return self.series[self.current_serie_name]
 
 	@current_serie.setter
-	def set_current_serie_by_name(self, serie):
+	def current_serie(self, serie):
 		""" Sets current serie object """
 		self.current_serie_name = serie
 
@@ -263,5 +298,8 @@ class SeriesData(object):
 
 	def add_serie(self, name):
 		"""Stupid test function to delete """
-		debug("pappy adding serie {}".format(name))
-	
+		raise NotImplementedError("wow")
+
+	def get_serie_list(self):
+		""" returns """
+		return self.series

@@ -5,3 +5,5 @@ _tmp*
 build*
 tests/data/*
 doc/.*
+install_script/*
+

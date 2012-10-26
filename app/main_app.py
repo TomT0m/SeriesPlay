@@ -12,61 +12,93 @@ from gi.repository import Gtk #pylint: disable = E0611
 
 #internal imports
 
-from app.controler import PlayEventManager
+from app.controller import ControllerModule, PlayEventManager
 
 import ui.subtitles, ui.ui_utils, ui.videotorrent_list_control
-from serie.bash_store import BashSeriesManager, BashManagedSerieFactory
+from serie.fs_store import FsSeriesStore, FsManagedSeriesData
+from serie.serie_manager import SeriesStore, SeriesData
 
+from datasource.play_subdl import Subdownloader, TVsubtitlesSubdownloader\
 
-from datasource.play_subdl import TVsubtitlesSubdownloader\
-	as subdownloader_subdownloader
+from snakeguice.modules import Module
 
 from app.config import Config
+# from utils.factory import FactoryFactory
+
+class ControllerFactory(object):
+	""" Factory creating a standard controller"""
+	def create(self, app, series, injector):
+		""" factory method"""
+		return PlayEventManager(app, series, injector)
 
 
-class App:
+class AppModule(Module):
+	""" snake guice application module configurator"""
+	def configure(self, binder):
+		""" binding definition """
+		
+		binder.bind(Subdownloader, to=TVsubtitlesSubdownloader)
+		self.install(binder, ControllerModule())
+		binder.bind(ControllerFactory, to=ControllerFactory)
+
+		store = FsSeriesStore()
+		config = Config()
+		
+		binder.bind(SeriesStore, to_instance = store)
+		binder.bind(Config, to_instance = config)
+		
+		binder.bind(SeriesData, to = FsManagedSeriesData)
+
+class App(object):
 	"""Class for main Manager app"""
-	
-	def __init__(self):
+
+	def __init__(self, injector):
+		self.injector = injector
+
+		store = injector.get_instance(SeriesStore) 
+		config = injector.get_instance(Config)
+		controller_factory = injector.get_instance(ControllerFactory)
 
 		# Loading the main UI file
-		self.gladefile = os.path.join(ui.ui_file)
+		gladefile = os.path.join(ui.ui_file)
 		builder = Gtk.Builder()
-		builder.add_from_file(self.gladefile)
+		builder.add_from_file(gladefile)
 
 		self.widg_tree = builder 
 		
 		# Model initialization
-		
-		self.bashmanager = BashSeriesManager()
-		bash_factory = BashManagedSerieFactory(self.bashmanager)
-		serie_list = self.bashmanager.get_serie_list()
+	
+		self.store = store
+		self.config = config
+
+		#TODO: wtf ?
+		# bash_factory = BashManagedSerieFactory(self.store)
+		serie_list = self.store.get_serie_list()
+
 		logging.info("creating serie manager")
-		self.series = bash_factory.create_serie_manager()
+		self.series = injector.get_instance(SeriesData) # bash_factory.create_serie_manager()
 		logging.info("created serie manager")
 	
 		# View initialization : serie list combo
 
 		serie_list.insert(0, self.series.current_serie.name)
-		self.event_mgr = PlayEventManager(self, self.series)#pylint: disable = E1101
+		
+		self.event_mgr = controller_factory.create(self, self.series, injector)
 		ui.ui_utils.populate_combo_with_items(self.getitem("SerieListCombo"), \
 				serie_list)
 		
-		
 		# Control : data getter for serie initialization
 		
-		subdl = subdownloader_subdownloader()
-		self.event_mgr.set_subdownloader(subdl)
-		self.event_mgr.set_manager(self.bashmanager)
+		# self.event_mgr.set_subdownloader(subdownloader)
+		self.event_mgr.set_manager(self.store)
 		
 		# View : initial screen setup 
 		
-		self.event_mgr.update_serie_view()
 
 		# control : monitoring current season 
 		# TODO: move to serie change control init
 		self.event_mgr.put_monitor_on_saison()
-		
+	
 		
 		# Control initialization setting up callbacks 
 		# on view alteration by user events
@@ -74,13 +106,12 @@ class App:
 		dic = { "on_Play_clicked" : self.event_mgr.play,
 			"on_SlaveMplayerPlay_clicked" : \
 					self.event_mgr.play_with_sub,
-			# "on_PromptedPlay_clicked" : self.event_mgr.prompted_play,
 			"on_SerieListCombo_changed" : \
 					self.event_mgr.selected_serie_changed,
 			"on_MainWindow_destroy" : self.event_mgr.end,
 			"on_numSaisonSpin_value_changed" : \
-					self.event_mgr.update_num_saison,
-			"on_numEpSpin_value_changed" : self.event_mgr.update_num_episode,
+					self.event_mgr.update_season_number,
+			"on_numEpSpin_value_changed" : self.event_mgr.update_episode_number,
 			"on_skipTimeSpin_value_changed" : \
 					self.event_mgr.update_skip_time,
 			"on_decayTimeSpin_value_changed" : \
@@ -117,4 +148,14 @@ class App:
 		""" Utility function, get a widget from is string ID """
 		return self.widg_tree.get_object(key)
 
+	season_number_spin_name = "numSaisonSpin"
+	episode_number_spin_name = "numEpSpin"
+	
+	def selected_season(self):
+		""" Getter : selected season number"""
+		return self.getitem(self.season_number_spin_name).get_value()
+
+	def selected_numep(self):
+		""" Getter : selected episode number"""
+		return self.getitem(self.episode_number_spin_name).get_value()
 
