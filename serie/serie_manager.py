@@ -41,7 +41,7 @@ class SeriesManager(object):
 		pass
 
 
-class Episode:
+class Episode(object):
 	""" Base class for episode information storage 
 	"""
 	def __init__(self, serie, season, num_ep):
@@ -54,9 +54,12 @@ class Episode:
 		self.subtitle_file_name = None
 	@property
 	def season(self):
+		""" getter for episode's Season object """
 		return self._season
+
 	@property
 	def number(self):
+		""" Getter for episode number in season """
 		return self.num_ep
 
 	def get_skip_time(self):
@@ -105,7 +108,7 @@ class Episode:
 		pass
 
 
-class Serie:
+class Serie(object):
 	""" Base class for defining a serie """
 	def __init__(self, name):
 		self.name = name
@@ -118,10 +121,17 @@ class Serie:
 
 	@property
 	def season_num(self):
+		""" Getter for current season number """
 		return self._season_num
 
+	@season_num.setter
+	def season_num(self, num):
+		""" setter for current season number"""
+		self._season_num = num
+	
 	@property
 	def episode_num(self):
+		""" Getter for next episode in current season """
 		return self.get_next_episode_num()
 
 	def get_next_episode_num(self):
@@ -139,16 +149,14 @@ class Serie:
 		return self.num_episode
 
 	
-	#def set_current_season_number(self, num):
-	#	""" Current season setter """
-	#	self.season_num = num
-
 	def get_season(self, number):
+		""" Getter for season number "number" of serie"""
 		pass
 
 	@property
 	def season(self):
-		return self.get_season(self.get_current_season_number())
+		""" Getter for current season object"""
+		return self.get_season(self.season_num)
 
 	def set_current_episode_number(self, num):
 		""" Current episode setter"""
@@ -210,16 +218,20 @@ class Serie:
 		pass	
 
 class Season(object):
-	def __init__(self, serie, number):
+	""" Season object"""
+	def __init__(self, serie, number, ep_number):
 		self._serie = serie
 		self._number = number
+		self._ep_number = ep_number
 
 	@property
 	def number(self):
+		""" Season number getter """
 		return self._number
 
 	@property
 	def serie(self):
+		""" serie getter """
 		return self._serie
 
 	@property
@@ -228,10 +240,20 @@ class Season(object):
 		getter for current episode object
 		"""
 		pass
+	@property
+	def ep_number(self):
+		""" Current episode number in season property getter """
+		return self._ep_number
+
+	@ep_number.setter
+	def ep_number(self, number):
+		""" Setter """
+		self._ep_number = number
 
 	#@property
 	#def episode_number(self):
 	#	return self._episode_number
+
 
 class SeriesData(object):
 	""" Base class for series set"""
@@ -245,11 +267,11 @@ class SeriesData(object):
 		self.add_serie(current_serie)	
 
 	@property
-	def current_serie(self):
+	def serie(self):
 		""" getter : selected serie """
 		return self.series[self.current_serie_name]
 
-	@current_serie.setter
+	@serie.setter
 	def current_serie(self, serie):
 		""" Sets current serie object """
 		self.current_serie_name = serie
@@ -266,4 +288,5 @@ class SeriesData(object):
 	def add_serie(self, name):
 		"""Stupid test function to delete """
 		debug("pappy adding serie {}".format(name))
-	
+
+

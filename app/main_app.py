@@ -15,19 +15,35 @@ from gi.repository import Gtk #pylint: disable = E0611
 from app.controler import PlayEventManager
 
 import ui.subtitles, ui.ui_utils, ui.videotorrent_list_control
-from serie.bash_store import BashSeriesManager, BashManagedSerieFactory
+from serie.bash_store import BashSeriesStore, BashManagedSerieFactory
 
 
-from datasource.play_subdl import TVsubtitlesSubdownloader\
-	as subdownloader_subdownloader
+from datasource.play_subdl import Subdownloader, TVsubtitlesSubdownloader\
+
+from snakeguice import inject
+# from snakeguice.providers import InstanceProvider
 
 from app.config import Config
 
 
-class App:
+class ControllerFactory(object):
+	""" Factory creating a standard controller"""
+	def create(self, app, series):
+		""" factory method"""
+		return PlayEventManager(app, series)
+
+class AppModule(object):
+	""" snake guice application module configurator"""
+	def configure(self, binder):
+		""" binding definition """
+		binder.bind(Subdownloader, to=TVsubtitlesSubdownloader)
+		binder.bind(ControllerFactory, to=ControllerFactory)
+
+
+class App(object):
 	"""Class for main Manager app"""
-	
-	def __init__(self):
+	@inject(subdownloader=Subdownloader, controller_factory=ControllerFactory, config=Config)
+	def __init__(self, config_file=self.bashmanager, subdownloader, controller_factory, config):
 
 		# Loading the main UI file
 		self.gladefile = os.path.join(ui.ui_file)
@@ -38,9 +54,9 @@ class App:
 		
 		# Model initialization
 		
-		self.bashmanager = BashSeriesManager()
-		bash_factory = BashManagedSerieFactory(self.bashmanager)
-		serie_list = self.bashmanager.get_serie_list()
+		self.store = BashSeriesStore()
+		bash_factory = BashManagedSerieFactory(self.store)
+		serie_list = self.store.get_serie_list()
 		logging.info("creating serie manager")
 		self.series = bash_factory.create_serie_manager()
 		logging.info("created serie manager")
@@ -48,25 +64,27 @@ class App:
 		# View initialization : serie list combo
 
 		serie_list.insert(0, self.series.current_serie.name)
-		self.event_mgr = PlayEventManager(self, self.series)#pylint: disable = E1101
+		
+		#pylint: disable = E1101
+		self.event_mgr = controller_factory.create(self, self.series)
 		ui.ui_utils.populate_combo_with_items(self.getitem("SerieListCombo"), \
 				serie_list)
 		
 		
 		# Control : data getter for serie initialization
 		
-		subdl = subdownloader_subdownloader()
+		subdl = subdownloader
 		self.event_mgr.set_subdownloader(subdl)
-		self.event_mgr.set_manager(self.bashmanager)
+		self.event_mgr.set_manager(self.store)
 		
 		# View : initial screen setup 
 		
-		self.event_mgr.update_serie_view()
 
 		# control : monitoring current season 
 		# TODO: move to serie change control init
 		self.event_mgr.put_monitor_on_saison()
-		
+	
+                self.config = Config
 		
 		# Control initialization setting up callbacks 
 		# on view alteration by user events

@@ -51,10 +51,10 @@ class EmptySubdownloader(object):
 		self.results = []
 		debug("initialized")
 
-	def get_founded_subtitles(self):
+	def get_for_ep(self, serie_name, season_number, 
+			episode_number, destination_directory):
 		""" results getter """
-		return self.results
-
+		return results
 
 from lxml import etree
 from StringIO import StringIO as StringIO

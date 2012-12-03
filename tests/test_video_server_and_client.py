@@ -83,7 +83,7 @@ class TestServer(unittest.TestCase):
 			wait_for_connection = protoc.ep_request(self.episode)\
 					.addCallback(got_results)
 			self.set_protocol(protoc)
-			print "protoq {}".format(self.protoc)
+			#print "protoq {}".format(self.protoc)
 			self.connected = True
 			return wait_for_connection
 
@@ -177,7 +177,8 @@ class TestServer(unittest.TestCase):
 		ep_finder = NetworkEpisodeVideoFinder(self.episode)
 		def print_results(results):
 			""" presentation callback"""
-			print("Résultats {}".format(len(results)))
+			#print("Résultats {}".format(len(results)))
+                        pass
 		def catch_err(res):
 			""" error callback """
 			print "err catched {}".format(res)

@@ -78,7 +78,7 @@ class testDownloadOnRep(unittest.TestCase):
 
 	def test_search(self):
 		def print_results(results):
-			print("Résultats {}".format(len(results)))
+			#print("Résultats {}".format(len(results)))
 			return results
 		ep_finder = EpisodeVideoFinder(self.episode)
 		return ep_finder.search_newep(self.episode).addCallback(print_results)
@@ -86,7 +86,7 @@ class testDownloadOnRep(unittest.TestCase):
 
 	def test_search_for_ep(self):
 		def print_results(results):
-			print("Résultats {}".format(len(results)))
+			#print("Résultats {}".format(len(results)))
 		ep_finder = EpisodeVideoFinder(self.episode)
 		ep_find = ep_finder.search_newep(self.episode).addCallback(print_results)
 		test = OnEventDeferred(ep_finder,"candidates_found")
@@ -95,7 +95,7 @@ class testDownloadOnRep(unittest.TestCase):
 	def test_search_and_choose(self):
 		ep_finder = EpisodeVideoFinder(self.episode)
 		def print_results(results):
-			print("Résultats {}".format(len(results)))
+			#print("Résultats {}".format(len(results)))
 		def catch_err(res):
 			print "err catched {}".format(res)
 		def choose(res):

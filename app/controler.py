@@ -410,7 +410,7 @@ class PlayEventManager:
 		* update UI accordingly
 		"""
 		logging.info("ep courant num changed ?")
-		self.serie_model.get_current_serie()\
+		self.serie_model.serie.season\
 				.episode_num = int(widg.get_value())
 		self.update_episode_view()
 	
@@ -420,7 +420,7 @@ class PlayEventManager:
 		* updates Model 
 		"""
 		logging.info("skip time changed ?")
-		self.serie_model.get_current_serie().set_skip_time(int(widg.get_value()))
+		self.serie_model.serie.set_skip_time(int(widg.get_value()))
 
 	def update_decay_time(self, widg):
 		""" Callback when decay time changes

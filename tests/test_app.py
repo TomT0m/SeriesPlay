@@ -3,6 +3,7 @@
 """ Module testing Torrent List Controler """
 
 from twisted.trial import unittest
+import twisted
 # import ui
 from gi.repository import Gtk #pylint: disable=E0611 
 
@@ -13,9 +14,32 @@ from app.controler import PlayEventManager
 
 from tests.common_test import create_fake_env, MAIN_CONF_FILE
 
-from serie.bash_store import BashSeriesManager, BashManagedSerie, BashManagedSeriesData
+from serie.bash_store import BashSeriesManager, BashManagedSeriesData
+
+
+from datasource.play_subdl import EmptySubdownloader, Subdownloader
+from snakeguice import Injector
+
+class ControllerFactory(object):
+	def create(self, app, series):
+		pass
+class TestControllerFactory(object):
+	""" Factory creating a standard controller"""
+	def create(self, app, series):
+		""" factory method"""
+		return PlayEventManager(app, series)
+
+class AppModule(object):
+	""" snake guice application module configurator"""
+	def configure(self, binder):
+		""" binding definition """
+		binder.bind(Subdownloader, to=EmptySubdownloader)
+		#binder.bind(ControllerFactory, to=TestControllerFactory)
+
+
 class FakeApp(object):
-	""" Fake testing app """
+	""" Fake testing app 
+	TODO: check for obsolescence"""
 	def __init__(self):
 		twisted.internet.base.DelayedCall.debug = True
 		builder = Gtk.Builder()
@@ -29,9 +53,20 @@ class FakeApp(object):
         	#return self.widg_tree.get_widget(key)
 		return self.builder.get_object(key)
 
+
+class TestAppModule(object):
+	""" Test app module injection configuration"""
+	def configure(self, binder):
+		""" configure method"""
+		binder.bind(Subdownloader, to=EmptySubdownloader)
+		binder.bind(ControllerFactory, to=ControllerFactory)
+
+
 def create_app():
 	""" Fake App factory function """
-	return App()
+	inj = Injector(TestAppModule())
+
+	return inj.get_instance(App)
 
 class TestVideotorrentControler(unittest.TestCase):
 	""" Controler testcase :
@@ -50,16 +85,19 @@ class TestVideotorrentControler(unittest.TestCase):
 	def test_1(self):
 		""" Fake app creation """
 		app = create_app()
-		control = VideoFinderControler(app)
+		# control = VideoFinderControler(app)
 		combo_box = app.getitem("SerieListCombo")
 		combo_box.set_active(2)
-		return control
+		return 
 
 	def test_change_serie(self):
+		""" TestCase : change serie on ui """
 		app = create_app()
+		
 		bash_manager = BashSeriesManager(MAIN_CONF_FILE)
-		serie = BashManagedSeriesData(bash_manager)
-		control = PlayEventManager(app, serie)
+		control = app.event_mgr
+		
+		# series = BashManagedSeriesData(bash_manager) #.current_serie
+		# control = PlayEventManager(app, series)
 		control.update_serie_view()
-		# app.
-		pass
+
