@@ -1,11 +1,11 @@
 #! /usr/bin/python
 #encoding: utf-8
-""" Main App controler : callback functions """
+""" Main App controller : 
+	* callback functions """
 
 # system imports
 import os
 import subprocess
-# import numbers
 import threading
 
 import logging
@@ -27,49 +27,35 @@ from datasource.play_subdl import \
 
 
 import ui.subtitles, ui.ui_utils, ui.videotorrent_list_control
-# from ui import subtitles
-from utils.cli import CommandExecuter, CommandLineGenerator
-from serie.serie_manager import Episode
+from ui.videotorrent_list_control import VideoFinderController
 
-class PlayEventManager:
-	""" Class regrouping all callbacks and
+from utils.cli import CommandExecuter, CommandLineGenerator
+
+from serie.serie_manager import Episode
+from snakeguice.decorators import inject
+
+class ControllerModule(object):
+	""" Controller module binder"""
+	def configure(self, binder):
+		""" Binding congiguration : 
+			* VideoFinderController Needed"""
+		binder.bind(VideoFinderController, to=VideoFinderController)
+
+class PlayEventManager(object):
+	""" Class regrouping l callbacks and
 	data updating functions
 	"""
 
-	def update_serie_list(self, 
-			monitor, fichier, data, event): #pylint: disable=W0613
-		""" Callbacks when a new file is added in the Serie directory,
-		Action : updates the Serie Combo
-		"""
-		logging.info("Recherche d'une nouvelle série")
-		model = self.iface.getitem("SerieListCombo").get_model()
-		serie_list = self.manager.get_serie_list()
-		new_items = [x for x in serie_list if not self.serie_model.series.has_key(x) ]
-		for new_serie in new_items:
-			self.serie_model.add_serie(new_serie)
-			model.append([new_serie])
-		
-	def update_subs_and_file(self, monitor, fichier, data, event):\
-			#pylint: disable=W0613
-		""" Callbacks when a new file is added on the Season directory
-		Action : calls update_serie
-		"""
-		logging.info("Recherche d'un nouveau sub / vidéo ?")
-		if ( event == Gio.FileMonitorEvent.CREATED ):
-			self.update_episode_view()
+	@inject(video_finder_controller=VideoFinderController)
+	def init_video_finder_controller(self, video_finder_controller):
+		""" Method used to inject controller factory"""
+		self.video_finder_controller = video_finder_controller
 
-	def open_filemanager(self, widg):#pylint: disable=W0613
-		""" Opens a Nautilus Window on current season directory"""
-		command_launch = CommandExecuter()
-		command_gen = CommandLineGenerator("xdg-open")
-		rep = self.serie_model.get_current_serie().get_path_to_current_season()
-		command_gen.add_option_single(rep)
-		command_launch.get_output(command_gen.get_command())
-
-	def __init__(self, iface, serie_model):
+	def __init__(self, iface, serie_model, ):
 		self.iface = iface
 		self.current_process = None
-		
+		self.init_video_finder_controller()
+
 		logging.debug ("creating event manager")
 		self.play_buttons = ["Play", "SlaveMplayerPlay", "DlSub", "OpenRep"]
 		self.serie_model = serie_model
@@ -115,6 +101,7 @@ class PlayEventManager:
 # self.MPlayer = mplayer_slave.player(self.\
 		#iface.getitem("VideoZone").window.xid)
 # self.MPlayer = mplayer_slave.player(None) 
+# self.MPlayer = mplayer_slave.player(None) 
 # self.iface.getitem("VideoZone").window.xid)
 # logging.info ("XID :", self.iface.getitem("VideoZone").window.xid)
 # self.payer_status = None
@@ -126,6 +113,36 @@ class PlayEventManager:
 		self.monitor_serie = None # making an attribute to prevent gc
 		self.manager = None
 
+
+	def update_serie_list(self, 
+			monitor, fichier, data, event): #pylint: disable=W0613
+		""" Callbacks when a new file is added in the Serie directory,
+		Action : updates the Serie Combo
+		"""
+		logging.info("Recherche d'une nouvelle série")
+		model = self.iface.getitem("SerieListCombo").get_model()
+		serie_list = self.manager.get_serie_list()
+		new_items = [x for x in serie_list if not self.serie_model.series.has_key(x) ]
+		for new_serie in new_items:
+			self.serie_model.add_serie(new_serie)
+			model.append([new_serie])
+		
+	def update_subs_and_file(self, monitor, fichier, data, event):\
+			#pylint: disable=W0613
+		""" Callbacks when a new file is added on the Season directory
+		Action : calls update_serie
+		"""
+		logging.info("Recherche d'un nouveau sub / vidéo ?")
+		if ( event == Gio.FileMonitorEvent.CREATED ):
+			self.update_episode_view()
+
+	def open_filemanager(self, widg):#pylint: disable=W0613
+		""" Opens a Nautilus Window on current season directory"""
+		command_launch = CommandExecuter()
+		command_gen = CommandLineGenerator("xdg-open")
+		rep = self.serie_model.get_current_serie().get_path_to_current_season()
+		command_gen.add_option_single(rep)
+		command_launch.get_output(command_gen.get_command())
 		
 	def execute_play_command(self, cmd, cwd = None):
 		""" Launches cmd command
@@ -362,8 +379,8 @@ class PlayEventManager:
 	def add_video_finder(self, episode):
 		""" Ubuesque code cascade & design trigerring
 		"""
-		controler = ui.videotorrent_list_control.VideoFinderControler(self)
-		controler.add_video_finder(episode)
+		controller = ui.videotorrent_list_control.VideoFinderController(self)
+		controller.add_video_finder(episode)
 
 	def selected_serie_changed(self, widg):
 		"""Callback when selected UI série changes
@@ -437,7 +454,7 @@ class PlayEventManager:
 		"""
 		logging.info("fps time changed ?")
 		entry = widg.get_child()
-		val = entry.get_text() 
+		val = None #TODO: fix
 		logging.info("changed" + val )
 		self.serie_model.get_current_serie().set_fps(val)
 

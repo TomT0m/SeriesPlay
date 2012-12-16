@@ -10,16 +10,26 @@ from ui.videotorrent_list_model import VideoResultStore
 
 from utils.on_event_deferred import OnEventDeferred
 
+#from snakeguice
 
 import logging
 
-class VideoFinderControler(object):
+#class VideoFinderController(object):
+#	""" interface """
+#	def __init__(self):
+#		pass
+#
+#	def add_video_finder(self, episode, app):
+#		pass
+
+
+class VideoFinderController(object):
 	""" Controler class """
 
-	def __init__(self, app):
-		self.app = app
+	def __init__(self):
+		pass 
 
-	def add_video_finder(self, episode):
+	def add_video_finder(self, episode, app):
 		""" Adding a new finder to the app"""
 		logging.info("adding video finder for ep {0}...".format(episode))
 		finder = episode_video_finder(episode)

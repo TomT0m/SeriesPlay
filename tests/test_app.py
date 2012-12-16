@@ -9,25 +9,34 @@ from gi.repository import Gtk #pylint: disable=E0611
 
 from ui.videotorrent_list_control import VideoFinderControler
 
-from app.main_app import App
+from app.main_app import App, StoreProvider, ConfigProvider
 from app.controler import PlayEventManager
+from app.config import Config
+
 
 from tests.common_test import create_fake_env, MAIN_CONF_FILE
 
-from serie.bash_store import BashSeriesManager, BashManagedSeriesData
+from serie.bash_store import BashSeriesStore, BashManagedSeriesData
 
 
 from datasource.play_subdl import EmptySubdownloader, Subdownloader
 from snakeguice import Injector
+from snakeguice.providers import create_instance_provider
 
-class ControllerFactory(object):
-	def create(self, app, series):
-		pass
-class TestControllerFactory(object):
-	""" Factory creating a standard controller"""
-	def create(self, app, series):
-		""" factory method"""
-		return PlayEventManager(app, series)
+#class ControllerFactory(object):
+#	def create(self, app, series):
+#		pass
+
+
+#class TestControllerFactory(object):
+#	""" Factory creating a standard controller"""
+#	def create(self, app, series):
+#		""" factory method"""
+#		return PlayEventManager(app, series)
+
+class TestStoreProvider:
+	def get(self):
+		return 
 
 class AppModule(object):
 	""" snake guice application module configurator"""
@@ -52,14 +61,19 @@ class FakeApp(object):
 		""" Utility function, get a widget from is string ID """
         	#return self.widg_tree.get_widget(key)
 		return self.builder.get_object(key)
-
+# class Temp
 
 class TestAppModule(object):
 	""" Test app module injection configuration"""
 	def configure(self, binder):
 		""" configure method"""
 		binder.bind(Subdownloader, to=EmptySubdownloader)
-		binder.bind(ControllerFactory, to=ControllerFactory)
+		#binder.bind(ControllerFactory, to=ControllerFactory)
+		
+		store = create_instance_provider(BashSeriesStore(MAIN_CONF_FILE))
+		config = create_instance_provider(Config(MAIN_CONF_FILE))
+		binder.bind(StoreProvider, to = store)
+                binder.bind(ConfigProvider, to = config)
 
 
 def create_app():
@@ -77,6 +91,7 @@ class TestVideotorrentControler(unittest.TestCase):
 		"""
 	def setUp(self): #pylint: disable=C0103
 		""" setting up """
+		twisted.internet.base.DelayedCall.debug = True
 		print("setting up")
 
 		create_fake_env('ZPlop', 2, 2)
@@ -94,7 +109,7 @@ class TestVideotorrentControler(unittest.TestCase):
 		""" TestCase : change serie on ui """
 		app = create_app()
 		
-		bash_manager = BashSeriesManager(MAIN_CONF_FILE)
+		# bash_manager = BashSeriesManager(MAIN_CONF_FILE)
 		control = app.event_mgr
 		
 		# series = BashManagedSeriesData(bash_manager) #.current_serie

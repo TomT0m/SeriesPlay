@@ -292,8 +292,13 @@ class BashManagedSeason(Season):
 		self.manager = serie.manager
 		self._serie = serie
 		Season.__init__(self, serie, number, ep_number)
-		# self._number = ep_number
-		# self._ep_number = self.serie.get_next_episode_in_season(self.number)
+		# self._number = ep_number
+		self._ep_number = self.serie.get_next_episode_in_season(self.number)
+
+	@property
+	def serie(self):
+		""" Serie getter """ 
+		return self._serie
 
 	@property
 	def episode(self):
