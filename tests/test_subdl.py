@@ -3,7 +3,7 @@
 
 
 from twisted.trial import unittest
-from serie.bash_store import BashSeriesManager
+from serie.fs_store import BashSeriesManager
 
 from datasource.play_subdl import TVsubtitlesSubdownloader
 from tests.common_test import create_fake_env, MAIN_CONF_FILE

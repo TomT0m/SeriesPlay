@@ -1,13 +1,13 @@
 #!/usr/bin/python
 #encoding: utf-8
-""" Module testing Torrent List Controler """
+""" Module testing Torrent List Controller """
 
 from twisted.trial import unittest
 import twisted
 # import ui
 from gi.repository import Gtk #pylint: disable=E0611 
 
-from ui.videotorrent_list_control import VideoFinderControler
+from ui.videotorrent_list_control import VideoFinderController
 
 from app.main_app import App, StoreProvider, ConfigProvider
 from app.controler import PlayEventManager
@@ -16,7 +16,7 @@ from app.config import Config
 
 from tests.common_test import create_fake_env, MAIN_CONF_FILE
 
-from serie.bash_store import BashSeriesStore, BashManagedSeriesData
+from serie.fs_store import BashSeriesStore, BashManagedSeriesData
 
 
 from datasource.play_subdl import EmptySubdownloader, Subdownloader
@@ -82,8 +82,8 @@ def create_app():
 
 	return inj.get_instance(App)
 
-class TestVideotorrentControler(unittest.TestCase):
-	""" Controler testcase :
+class TestVideotorrentController(unittest.TestCase):
+	""" Controller testcase :
 	* create app
 	* empty selection
 	* selection
@@ -100,7 +100,7 @@ class TestVideotorrentControler(unittest.TestCase):
 	def test_1(self):
 		""" Fake app creation """
 		app = create_app()
-		# control = VideoFinderControler(app)
+		# control = VideoFinderController(app)
 		combo_box = app.getitem("SerieListCombo")
 		combo_box.set_active(2)
 		return 

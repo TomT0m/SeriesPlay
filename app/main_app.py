@@ -15,12 +15,12 @@ from gi.repository import Gtk #pylint: disable = E0611
 from app.controller import ControllerModule, PlayEventManager
 
 import ui.subtitles, ui.ui_utils, ui.videotorrent_list_control
-from serie.bash_store import BashSeriesStore, BashManagedSerieFactory
-
+from serie.fs_store import BashSeriesStore, BashManagedSerieFactory
+class Store:pass
 
 from datasource.play_subdl import Subdownloader, TVsubtitlesSubdownloader\
 
-from snakeguice import injector
+# from snakeguice import injector
 from snakeguice.decorators import inject
 from snakeguice.providers import create_instance_provider
 from snakeguice.modules import Module
@@ -35,18 +35,24 @@ class ControllerFactory(object):
 		return PlayEventManager(app, series)
 
 class StoreProvider(object):
+	""" Interface for store provider"""
 	def get(self):
+		""" store object getter """
 		pass
 
-class ConfigProvider(object): 
+class ConfigProvider(object):
+	""" Interface for config object provider """
 	def get(self):
+		""" config object getter """
 		pass
 
 class StdStoreProvider(object):
+	""" standard store provider """ 
 	def __init__(self, store):
 		self.store = store
 	def get(self):
-		return store
+		""" getter """
+		return self.store
 
 class AppModule(Module):
 	""" snake guice application module configurator"""
@@ -57,10 +63,10 @@ class AppModule(Module):
 		self.install(binder, ControllerModule())
 		binder.bind(ControllerFactory, to=ControllerFactory)
 
-		store = create_instance_provider(BashSeriesStore())
+		#store = create_instance_provider(BashSeriesStore())
 		config = create_instance_provider(Config())
-		
-		binder.bind(store, to=StoreProvider)
+		# assert(store().get() != None)	
+		binder.bind(Store, to_instance=BashSeriesStore())
 		binder.bind(config, to=ConfigProvider)
 		
 
@@ -69,9 +75,9 @@ class App(object):
 
 	@inject(subdownloader = Subdownloader, 
 	 controller_factory = ControllerFactory,
-	 store_provider = StoreProvider,
+	 store = Store,
 	 config_provider = ConfigProvider )
-	def __init__(self, subdownloader, controller_factory, store_provider, config_provider):
+	def __init__(self, subdownloader, controller_factory, store, config_provider):
 
 		# Loading the main UI file
 		self.gladefile = os.path.join(ui.ui_file)
@@ -82,7 +88,9 @@ class App(object):
 		
 		# Model initialization
 	
-		self.store = store_provider.get()
+		self.store = store
+		# print type(subdownloader)
+		# print type(store_provider)
 		self.config = config_provider.get()
 
 		bash_factory = BashManagedSerieFactory(self.store)

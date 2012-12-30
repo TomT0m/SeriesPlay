@@ -5,7 +5,7 @@
 # from twisted.trial import unittest
 import unittest
 
-from serie.bash_store import BashSeriesManager, \
+from serie.fs_store import BashSeriesManager, \
 		BashManagedSeriesData
 import os
 import re

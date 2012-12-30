@@ -20,7 +20,7 @@ class BashSeriesStore(SeriesManager):
 
 	config_file_season_name = ".play_conf"	
 	config_file_serie_name = ".play_season"
-	def_config_file_abs_name = os.path.expanduser("~/.play_season")
+	default_config_file_abs_name = Config.config_file_abs_name 
 
 	path_to_series_var = "BASE"
 	play_current_episode_var = "CUR"
@@ -29,7 +29,7 @@ class BashSeriesStore(SeriesManager):
 	serie_name_var = "NAME"
 	fps_var = "SUBFPS"
 
-	def __init__(self, config_file = def_config_file_abs_name):
+	def __init__(self, config_file = default_config_file_abs_name):
 		SeriesManager.__init__(self)
 		self.executer = CommandExecuter()
 		self.config_file_abs_name = config_file 

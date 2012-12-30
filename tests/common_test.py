@@ -2,7 +2,7 @@
 
 """ utilies for unittesting """
 
-from serie.bash_store import \
+from serie.fs_store import \
 		ConfigManager, BashManagedSerie, BashManagedEpisode, \
 		BashManagedSeason
 from serie.serie_manager import SeriesManager

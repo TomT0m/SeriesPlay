@@ -7,16 +7,18 @@ Sample configuration class
 """
 from utils.cli import ConfigManager
 
-#TODO: refactor
-from serie.bash_store import BashSeriesStore
+import os
 
 class Config:
 	""" Class used to manage a configuration for SeriePlay """
+	
+	config_file_abs_name = os.path.expanduser("~/.play_season")
+	
 	def __init__(self, config_file = None):
 		if config_file:
 			self.reader = ConfigManager(config_file)
 		else:
-			self.reader = ConfigManager(BashSeriesStore.config_file_abs_name)
+			self.reader = ConfigManager(self.config_file_abs_name)
 
 	def get_sub_extensions(self):
 		""" 
