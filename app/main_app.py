@@ -123,7 +123,8 @@ class App(object):
 		
 		# Control : data getter for serie initialization
 		
-		
+		self.event_mgr.set_manager(self.store)
+			
 		# View : initial screen setup 
 		
 
