@@ -25,6 +25,8 @@ from snakeguice.modules import Module
 from app.config import Config
 from app.service import PipeService, async_start
 
+from twisted.internet import defer
+
 class ControllerFactory(object):
 	""" Factory creating a standard controller"""
 	def create(self, app, series, injector):
@@ -62,16 +64,17 @@ class App(object):
 		"""
 		# beginning of a Code Goldberg Machine
 		# Keep it overly complex
-
-		self.services[self.video_finder_key] = \
-				self.async_start_service(PipeService("video_finder_server.py"),
+		self.async_start_service(PipeService("video_finder_server.py"),
 						self.video_finder_key)
+
+	def _get_service(self, key):
+		return self.services[key]
 
 	def get_service(self, key):
 		""" Returns a MaybeDeferred which waits for service for starting 
 		(if not started) to trigger its callback
 		"""
-		return self.services[key]
+		return defer.maybeDeferred(self._get_service, key)
 
 
 	def stop_app(self, widg):

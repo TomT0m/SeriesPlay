@@ -20,7 +20,7 @@ from utils.factory import FactoryFactory
 
 
 class VideoFinderController(object):
-	""" Controler class """
+	""" Controller class """
 
 	@inject(video_finder_creator = FactoryFactory)
 	def __init__(self, video_finder_creator):
@@ -28,7 +28,7 @@ class VideoFinderController(object):
 
 	def add_video_finder(self, app, episode):
 		""" asynch version """
-		defe = defer.maybeDeferred(app.get_service, app.video_finder_key)
+		defe = app.get_service(app.video_finder_key)
 		def callback(res):
 			""" call wrapping """
 			self._add_video_finder(app, episode)

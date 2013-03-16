@@ -6,6 +6,8 @@ from twisted.trial import unittest
 from app.service import PipeService
 from utils.on_event_deferred import OnEventDeferred
 from twisted.internet import defer
+
+
 class TestPipeService(unittest.TestCase):
 	""" Simple Testcase """
 	def setUp(self):
@@ -15,7 +17,7 @@ class TestPipeService(unittest.TestCase):
 	def test_start_and_stop(self):
 		""" Simple testcase """
 		self.service = PipeService("/bin/sh")
-		wait_for_start = OnEventDeferred(self.service,"service_started")
+		wait_for_start = OnEventDeferred(self.service, "service_started")
 		wait_for_stop = OnEventDeferred(self.service, "service_ended")
 		self.service.start()
 

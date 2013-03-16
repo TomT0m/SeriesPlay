@@ -14,20 +14,26 @@ Content :
 """
 from gi.repository import GObject #pylint: disable=E0611
 from utils.on_event_deferred import OnEventDeferred
+from twisted.internet import reactor
+
+from logging import info
 
 def async_start(service, dic, key):
 	""" Puts service in dictionary in deferred start mode, 
 	and replaces it on service started
 	"""
-	def on_started_replace():
+	def on_started_replace(res):
 		""" Replaces deferred with real service """
 		dic[key] = service
-
+	
 	on_service_started = OnEventDeferred(service, "service_started")\
 			.addCallback(on_started_replace)
-
+	
 	dic[key] = on_service_started
-
+	
+	service.start()
+	
+	return on_service_started
 
 
 class Service(GObject.GObject):
@@ -60,9 +66,11 @@ class PipeService(Service):
 	"""
 
 
+
 	def __init__(self, path):
 		Service.__init__(self, path)
 		self.pipe = None
+	
 	def start(self):
 		""" Start the process"""
 		self.pipe = subprocess.Popen(
@@ -70,8 +78,14 @@ class PipeService(Service):
 				shell = False,
 				stdout = None,
 				stdin = None)
-		sleep(1)
-		self.emit("service_started")#pylint: disable=E1101
+
+		def started_callback():
+			""" callbacks 1 second later """
+			#pylint: disable=E1101
+			self.emit("service_started")
+		
+		reactor.callLater(1, started_callback)
+		
 
 	def stop(self):
 		""" Request service stopping"""
