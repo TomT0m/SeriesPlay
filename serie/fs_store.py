@@ -433,8 +433,8 @@ class FsManagedSerie(Serie):
 	def on_seen_episode(self):
 		""" Callback when ep seen in this serie """
 		# TODO: finish refactoring
-		self.season_num = self.get_current_season_number()
-		self.season.num_episode = self.get_next_episode_num()
+		self.season = self.get_current_season_number()
+		self.season.episode = self.get_next_episode_num()
 		self.manager.write_conf_var(
 				self.manager.get_global_config_file(), 
 				self.manager.serie_name_var, 

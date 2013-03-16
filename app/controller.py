@@ -266,7 +266,7 @@ class PlayEventManager(object):
 			self.play_buttons)
 		self.current_process = None
 		if not self.app.getitem("SetupModeCheck").get_active():
-			self.serie_model.get_current_serie().on_seen_episode()
+			self.serie_model.current_serie.on_seen_episode()
 			self.update_serie_view()
 		return False	
 	
