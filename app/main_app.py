@@ -80,9 +80,13 @@ class App(object):
 	def stop_app(self, widg):
 		""" Stop App 
 		TODO : see if must move from event_mgr.end()"""
-		for serv in self.services.itervalues():
-			serv.stop()
+		self.stop()
 		self.event_mgr.end(widg)
+	
+	def stop(self):
+		""" Stop services """
+		for serv in self.services.iterkeys():
+			self.get_service(serv).addCallback(lambda serv: serv.stop())
 
 
 	def __init__(self, injector):

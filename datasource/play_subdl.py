@@ -18,8 +18,8 @@ Téléchargment des sous-titres dans un thread
 	
 	nom = serie.name
 	path = serie.get_path_to_current_season()
-	numep = serie.get_current_episode_number()
-	numsais = serie.get_current_season_number()
+	numep = serie.season.episode.number
+	numsais = serie.season.number
 	
 	info("searching subtitles for {} season {} ep {} ... "\
 			.format(nom, numep, numsais)
@@ -210,8 +210,6 @@ class TVsubtitlesSubdownloader(Subdownloader):
 	
 		return [a_elem.attrib['href'].split("-")[1].split(".")[0] 
 				for a_elem in a_elems]
-		#return map( lambda a_elem: 
-		# a_elem.attrib['href'].split("-")[1].split(".")[0], a_elems)
 
 	@classmethod
 	def get_url_from_subid(cls, subid):

@@ -25,6 +25,7 @@ def async_start(service, dic, key):
 	def on_started_replace(res):
 		""" Replaces deferred with real service """
 		dic[key] = service
+		return service
 	
 	on_service_started = OnEventDeferred(service, "service_started")\
 			.addCallback(on_started_replace)

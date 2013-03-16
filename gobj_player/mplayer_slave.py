@@ -163,7 +163,7 @@ class MPlayerSlave:
 			(output_files, _, _) = select\
 					.select(watched_files, [], [], 0.6)
 			
-			debug("something selected ??")
+			# debug("something selected ??")
 			something_read = False
 			for output_file in output_files :
 				#print("looks like it in desc:{0}".format(x))

@@ -132,6 +132,8 @@ class TestVideotorrentController(unittest.TestCase):
 		
 		self.assertEquals((app.selected_season(), app.selected_numep()), (2, 2))
 
+		app.stop()
+
 		return 
 
 	def test_change_serie(self):
@@ -161,3 +163,5 @@ class TestVideotorrentController(unittest.TestCase):
 		print_app_status(app)
 
 		self.assertEquals((app.selected_season(), app.selected_numep()), (8, 1))
+
+		app.stop()
