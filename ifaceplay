@@ -30,7 +30,7 @@ from app.main_app import AppModule, App
 def main():
 	""" Main function for script """
 	injector = Injector(AppModule())
-	app = injector.get_instance(App)
+	app = App(injector)
 	logging.debug("App constructed {}".format(app))
 	reactor.run()#pylint: disable = E1101
 

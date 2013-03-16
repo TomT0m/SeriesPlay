@@ -15,44 +15,20 @@ from gi.repository import Gtk #pylint: disable = E0611
 from app.controller import ControllerModule, PlayEventManager
 
 import ui.subtitles, ui.ui_utils, ui.videotorrent_list_control
-from serie.fs_store import BashSeriesStore, BashManagedSerieFactory
-class Store:pass
+from serie.fs_store import FsSeriesStore, FsManagedSeriesData
+from serie.serie_manager import SeriesStore, SeriesData
 
 from datasource.play_subdl import Subdownloader, TVsubtitlesSubdownloader\
 
-# from snakeguice import injector
-from snakeguice.decorators import inject
-from snakeguice.providers import create_instance_provider
 from snakeguice.modules import Module
 
 from app.config import Config
 
-
 class ControllerFactory(object):
 	""" Factory creating a standard controller"""
-	def create(self, app, series):
+	def create(self, app, series, injector):
 		""" factory method"""
-		return PlayEventManager(app, series)
-
-class StoreProvider(object):
-	""" Interface for store provider"""
-	def get(self):
-		""" store object getter """
-		pass
-
-class ConfigProvider(object):
-	""" Interface for config object provider """
-	def get(self):
-		""" config object getter """
-		pass
-
-class StdStoreProvider(object):
-	""" standard store provider """ 
-	def __init__(self, store):
-		self.store = store
-	def get(self):
-		""" getter """
-		return self.store
+		return PlayEventManager(app, series, injector)
 
 class AppModule(Module):
 	""" snake guice application module configurator"""
@@ -63,56 +39,55 @@ class AppModule(Module):
 		self.install(binder, ControllerModule())
 		binder.bind(ControllerFactory, to=ControllerFactory)
 
-		#store = create_instance_provider(BashSeriesStore())
-		config = create_instance_provider(Config())
-		# assert(store().get() != None)	
-		binder.bind(Store, to_instance=BashSeriesStore())
-		binder.bind(config, to=ConfigProvider)
+		store = FsSeriesStore()
+		config = Config()
 		
+		binder.bind(SeriesStore, to_instance = store)
+		binder.bind(Config, to_instance = config)
+		
+		binder.bind(SeriesData, to = FsManagedSeriesData)
 
 class App(object):
 	"""Class for main Manager app"""
 
-	@inject(subdownloader = Subdownloader, 
-	 controller_factory = ControllerFactory,
-	 store = Store,
-	 config_provider = ConfigProvider )
-	def __init__(self, subdownloader, controller_factory, store, config_provider):
+	def __init__(self, injector):
+		self.injector = injector
+
+		store = injector.get_instance(SeriesStore) 
+		config = injector.get_instance(Config)
+		controller_factory = injector.get_instance(ControllerFactory)
 
 		# Loading the main UI file
-		self.gladefile = os.path.join(ui.ui_file)
+		gladefile = os.path.join(ui.ui_file)
 		builder = Gtk.Builder()
-		builder.add_from_file(self.gladefile)
+		builder.add_from_file(gladefile)
 
 		self.widg_tree = builder 
 		
 		# Model initialization
 	
 		self.store = store
-		# print type(subdownloader)
-		# print type(store_provider)
-		self.config = config_provider.get()
+		self.config = config
 
-		bash_factory = BashManagedSerieFactory(self.store)
+		#TODO: wtf ?
+		# bash_factory = BashManagedSerieFactory(self.store)
 		serie_list = self.store.get_serie_list()
 
 		logging.info("creating serie manager")
-		self.series = bash_factory.create_serie_manager()
+		self.series = injector.get_instance(SeriesData) # bash_factory.create_serie_manager()
 		logging.info("created serie manager")
 	
 		# View initialization : serie list combo
 
 		serie_list.insert(0, self.series.current_serie.name)
 		
-		#pylint: disable = E1101
-		self.event_mgr = controller_factory.create(self, self.series)
+		self.event_mgr = controller_factory.create(self, self.series, injector)
 		ui.ui_utils.populate_combo_with_items(self.getitem("SerieListCombo"), \
 				serie_list)
 		
 		# Control : data getter for serie initialization
 		
-		subdl = subdownloader
-		self.event_mgr.set_subdownloader(subdl)
+		# self.event_mgr.set_subdownloader(subdownloader)
 		self.event_mgr.set_manager(self.store)
 		
 		# View : initial screen setup 
@@ -133,8 +108,8 @@ class App(object):
 					self.event_mgr.selected_serie_changed,
 			"on_MainWindow_destroy" : self.event_mgr.end,
 			"on_numSaisonSpin_value_changed" : \
-					self.event_mgr.update_num_saison,
-			"on_numEpSpin_value_changed" : self.event_mgr.update_num_episode,
+					self.event_mgr.update_season_number,
+			"on_numEpSpin_value_changed" : self.event_mgr.update_episode_number,
 			"on_skipTimeSpin_value_changed" : \
 					self.event_mgr.update_skip_time,
 			"on_decayTimeSpin_value_changed" : \
@@ -171,4 +146,14 @@ class App(object):
 		""" Utility function, get a widget from is string ID """
 		return self.widg_tree.get_object(key)
 
+	season_number_spin_name = "numSaisonSpin"
+	episode_number_spin_name = "numEpSpin"
+	
+	def selected_season(self):
+		""" Getter : selected season number"""
+		return self.getitem(self.season_number_spin_name).get_value()
+
+	def selected_numep(self):
+		""" Getter : selected episode number"""
+		return self.getitem(self.episode_number_spin_name).get_value()
 

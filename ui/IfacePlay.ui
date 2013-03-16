@@ -187,7 +187,7 @@ MPLayer esclave</property>
           </packing>
         </child>
         <child>
-          <object class="GtkExpander" id="expander1">
+          <object class="GtkExpander" id="epDetailsExpander">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <child>

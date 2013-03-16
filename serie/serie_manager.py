@@ -2,19 +2,18 @@
 #encoding:utf-8
 """ managing data about series """
 
-# from utils.cli import CommandExecuter, CommandLineGenerator, \
-# 		ConfigManager, FileNameError
-
-# from trace import trace
 
 
 from logging import debug, info
+from snakeguice import inject
+from snakeguice.injector import IInjector
 
-class SeriesManager(object):
+class SeriesStore(object):
 	""" Base class model for 
 	stored informations retrieval
 	"""
-
+	def __init__(self):
+		raise NotImplementedError("SeriesStore is abstract") 
 	def get_stored_current_season_number(self, nom):
 		""" Returns season number of current serie """
 		pass
@@ -111,13 +110,18 @@ class Episode(object):
 class Serie(object):
 	""" Base class for defining a serie """
 	def __init__(self, name):
-		self.name = name
+		self._name = name
 		self._season_num = self.get_stored_current_season_number()
 		self.num_episode = self.get_next_episode_num()
 		self.skiptime = 0
 		self.decaytime = 0
 		self.fps = ""
 		self.subtitle_file_name = None
+	
+	@property
+	def name(self):
+		""" name getter """
+		return self._name
 
 	@property
 	def season_num(self):
@@ -250,28 +254,35 @@ class Season(object):
 		""" Setter """
 		self._ep_number = number
 
-	#@property
-	#def episode_number(self):
-	#	return self._episode_number
-
 
 class SeriesData(object):
 	""" Base class for series set"""
-	def __init__(self, current_serie, series):
+	@inject(injector = IInjector)
+	def __init__(self, injector):
 		self.series = {}
-		self.current_serie_name = current_serie
-	
-		for serie in series :
-			info("Creating serie {}".format(serie))
-			self.series[serie] = None
-		self.add_serie(current_serie)	
+		self.injector = injector
+		
+		self.store = injector.get_instance(SeriesStore)
+		
+
+		self.current_serie_name = self.store.get_current_serie_name()
+		lseries = self.store.get_serie_list()
+
+		info("Creating series ...") # .format(nserie))
+		for nserie in lseries :
+			info("Creating serie {}".format(nserie))
+			self.series[nserie] = self.add_serie(nserie)
 
 	@property
-	def serie(self):
+	def current_serie(self):
 		""" getter : selected serie """
+		res = self.series[self.current_serie_name]
+		if not res:
+			self.add_serie(self.current_serie_name)
+
 		return self.series[self.current_serie_name]
 
-	@serie.setter
+	@current_serie.setter
 	def current_serie(self, serie):
 		""" Sets current serie object """
 		self.current_serie_name = serie
@@ -287,6 +298,8 @@ class SeriesData(object):
 
 	def add_serie(self, name):
 		"""Stupid test function to delete """
-		debug("pappy adding serie {}".format(name))
+		raise NotImplementedError("wow")
 
-
+	def get_serie_list(self):
+		""" returns """
+		return self.series

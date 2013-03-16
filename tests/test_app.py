@@ -3,85 +3,96 @@
 """ Module testing Torrent List Controller """
 
 from twisted.trial import unittest
-import twisted
-# import ui
+import twisted 
+from twisted.internet import reactor
+
+
 from gi.repository import Gtk #pylint: disable=E0611 
 
-from ui.videotorrent_list_control import VideoFinderController
-
-from app.main_app import App, StoreProvider, ConfigProvider
-from app.controler import PlayEventManager
+from app.main_app import App 
+from app.controller import ControllerModule, VideoFinderController, PlayEventManager, \
+		ExternalPlayerHandler
 from app.config import Config
 
 
 from tests.common_test import create_fake_env, MAIN_CONF_FILE
 
-from serie.fs_store import BashSeriesStore, BashManagedSeriesData
+from serie.serie_manager import SeriesStore, SeriesData
+from serie.fs_store import FsSeriesStore, FsManagedSeriesData
 
 
 from datasource.play_subdl import EmptySubdownloader, Subdownloader
 from snakeguice import Injector
-from snakeguice.providers import create_instance_provider
 
-#class ControllerFactory(object):
-#	def create(self, app, series):
-#		pass
+from gi.repository import GObject
+
+from datasource.episode_video_finder import BaseEpisodeVideoFinder
+
+class DummyVideoFinder(BaseEpisodeVideoFinder):
+	""" Testing class : do nothing """
+	def add_video_finder(self, app, plop):
+		""" dummy """
+		pass
+
+	def search_newep(self, epi):
+		""" dummy too"""
+		pass
+
+class DummyPlayerHandler(object):
+	""" Dummy """
+	#pylint:disable=W0613
+	def execute_play_command(self, controller, cmd, cwd = None):
+		""" Justs waits then call end of play """
+		reactor.callLater(0.1, controller.end_of_play)
 
 
-#class TestControllerFactory(object):
-#	""" Factory creating a standard controller"""
-#	def create(self, app, series):
-#		""" factory method"""
-#		return PlayEventManager(app, series)
+from utils.factory import FactoryFactory
+from snakeguice.modules import Module
 
-class TestStoreProvider:
-	def get(self):
-		return 
-
-class AppModule(object):
-	""" snake guice application module configurator"""
+class TestFinderModule(Module):
+	""" Fake """
 	def configure(self, binder):
-		""" binding definition """
-		binder.bind(Subdownloader, to=EmptySubdownloader)
-		#binder.bind(ControllerFactory, to=TestControllerFactory)
+		facto = FactoryFactory(DummyVideoFinder)
+		binder.bind(FactoryFactory, to_instance = facto)
 
+class FakeControllerModule(Module):
+	""" Fake """
+	def configure(self, binder):
+		self.install(binder, TestFinderModule())
+		binder.bind(VideoFinderController, to = VideoFinderController)
+		binder.bind(ExternalPlayerHandler, to = DummyPlayerHandler)
 
-class FakeApp(object):
-	""" Fake testing app 
-	TODO: check for obsolescence"""
-	def __init__(self):
-		twisted.internet.base.DelayedCall.debug = True
-		builder = Gtk.Builder()
-		builder.add_from_file("../ui/IfacePlay.ui")
-
-		self.window = builder.get_object("MainWindow")
-		self.builder = builder
-	
-	def getitem(self, key):
-		""" Utility function, get a widget from is string ID """
-        	#return self.widg_tree.get_widget(key)
-		return self.builder.get_object(key)
-# class Temp
-
-class TestAppModule(object):
+class TestAppModule(Module):
 	""" Test app module injection configuration"""
 	def configure(self, binder):
 		""" configure method"""
 		binder.bind(Subdownloader, to=EmptySubdownloader)
-		#binder.bind(ControllerFactory, to=ControllerFactory)
 		
-		store = create_instance_provider(BashSeriesStore(MAIN_CONF_FILE))
-		config = create_instance_provider(Config(MAIN_CONF_FILE))
-		binder.bind(StoreProvider, to = store)
-                binder.bind(ConfigProvider, to = config)
+		self.install(binder, FakeControllerModule())
 
+		config = Config(MAIN_CONF_FILE)
+		binder.bind(SeriesStore, to_instance = FsSeriesStore(MAIN_CONF_FILE))
+		binder.bind(Config, to_instance = config)
+		binder.bind(PlayEventManager, to = PlayEventManager)
+		binder.bind(SeriesData, to = FsManagedSeriesData)
 
 def create_app():
 	""" Fake App factory function """
 	inj = Injector(TestAppModule())
 
-	return inj.get_instance(App)
+	return App(inj)
 
+
+def value(combo):
+	""" Returns selected combo box value """
+	return combo.get_model().get_value(combo.get_active_iter(), 0)
+
+def print_app_status(app):
+	""" App info printing """
+	combo_box = app.getitem("SerieListCombo")
+	print("Série : {}, S{}E{}".format( value(combo_box), app.selected_season(), app.selected_numep()))
+
+#pylint:disable=R0904
 class TestVideotorrentController(unittest.TestCase):
 	""" Controller testcase :
 	* create app
@@ -89,30 +100,64 @@ class TestVideotorrentController(unittest.TestCase):
 	* selection
 	* cancelation
 		"""
-	def setUp(self): #pylint: disable=C0103
+	#pylint: disable=C0103 
+	def setUp(self): 
 		""" setting up """
 		twisted.internet.base.DelayedCall.debug = True
 		print("setting up")
 
 		create_fake_env('ZPlop', 2, 2)
 		create_fake_env('Plop', 3, 2)
-
+	
 	def test_1(self):
 		""" Fake app creation """
 		app = create_app()
-		# control = VideoFinderController(app)
+		print_app_status(app)
+
 		combo_box = app.getitem("SerieListCombo")
+		combo_box.set_active(0)
+		print_app_status(app)
+		self.assertTrue(value(combo_box) == 'Plop')
+
+		season = app.selected_season()
+		self.assertEquals(season, 3)
+		ep = app.selected_numep()
+		
+		self.assertEquals(ep, 2)
+
 		combo_box.set_active(2)
+		print_app_status(app)
+		
+		self.assertEquals(value(combo_box), 'ZPlop')
+		
+		self.assertEquals((app.selected_season(), app.selected_numep()), (2, 2))
+
 		return 
 
 	def test_change_serie(self):
 		""" TestCase : change serie on ui """
 		app = create_app()
-		
-		# bash_manager = BashSeriesManager(MAIN_CONF_FILE)
 		control = app.event_mgr
+
+		print_app_status(app)
 		
-		# series = BashManagedSeriesData(bash_manager) #.current_serie
-		# control = PlayEventManager(app, series)
 		control.update_serie_view()
 
+		print_app_status(app)
+		# combo_box = app.getitem("SerieListCombo")
+		print_app_status(app)
+
+		numep_widget = app.getitem("numEpSpin")
+
+		numep_widget.set_value(3)
+		
+		self.assertEquals(app.selected_numep(), 3)	
+		print_app_status(app)
+
+
+		numsais_widget = app.getitem("numSaisonSpin")
+
+		numsais_widget.set_value(8)
+		print_app_status(app)
+
+		self.assertEquals((app.selected_season(), app.selected_numep()), (8, 1))

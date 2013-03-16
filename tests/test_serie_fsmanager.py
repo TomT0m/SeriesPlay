@@ -2,19 +2,25 @@
 #encoding: utf-8
 """ Serie manager and Series Testing """
 
-# from twisted.trial import unittest
 import unittest
 
-from serie.fs_store import BashSeriesManager, \
-		BashManagedSeriesData
+from serie.fs_store import FsSeriesStore, \
+		FsManagedSeriesData
+from serie.serie_manager import SeriesData
+
 import os
 import re
 
 from tests.common_test import create_fake_env, \
 		MAIN_CONF_FILE
 
+from snakeguice.modules import Module
+from snakeguice import Injector
+from serie.serie_manager import SeriesStore
 
-class TestBashManager(unittest.TestCase):
+
+
+class TestFsStore(unittest.TestCase):
 	""" Test case : bash serie manager """
 	cwd = None 
 
@@ -22,9 +28,21 @@ class TestBashManager(unittest.TestCase):
 		""" getting test configfile fullpath """
 		return os.path.join(self.cwd, MAIN_CONF_FILE)
 
+	def build_module(self):
+		""" create a test module"""
+		class FSSerieModule(Module):
+			""" Serie object test module"""
+			def configure(self_, binder):
+				""" bindings """
+				store = FsSeriesStore(self.get_global_conffifile_fullpath())
+				binder.bind(SeriesStore, to_instance = store)
+				binder.bind(SeriesData, to = FsManagedSeriesData)
+
+		return FSSerieModule()
+
 	def setUp(self):
 		if self.cwd == None:
-			TestBashManager.cwd = os.getcwd()
+			TestFsStore.cwd = os.getcwd()
 		os.chdir(self.cwd)
 		create_fake_env('ZPlop', 2, 2, self.cwd)
 		create_fake_env('Plop', 2, 2, self.cwd)
@@ -36,6 +54,7 @@ class TestBashManager(unittest.TestCase):
 			fil.write("bidou")
 
 		os.chdir("/")
+
 	def tearDown(self):
 		os.chdir(self.cwd)
 
@@ -49,7 +68,7 @@ class TestBashManager(unittest.TestCase):
 
 	def test_serie(self):
 		""" testing serie object """
-		bash_manager = BashSeriesManager(self.get_global_conffifile_fullpath())
+		bash_manager = FsSeriesStore(self.get_global_conffifile_fullpath())
 		serie_list = bash_manager.get_serie_list()
 		self.assertTrue(bash_manager.get_global_config_file() == 
 				self.get_global_conffifile_fullpath())
@@ -64,7 +83,7 @@ class TestBashManager(unittest.TestCase):
 	def test_conffile(self):
 		""" testing test environment """
 		name = 'Plop'
-		bash_manager = BashSeriesManager(self.get_global_conffifile_fullpath())
+		bash_manager = FsSeriesStore(self.get_global_conffifile_fullpath())
 		self.assertTrue(bash_manager.get_global_config_file() 
 				== self.get_global_conffifile_fullpath())
 		
@@ -80,15 +99,16 @@ class TestBashManager(unittest.TestCase):
 
 	def test_episode(self):
 		""" testing episode object """
-		bash_manager = BashSeriesManager(self.get_global_conffifile_fullpath())
-		datas = BashManagedSeriesData(bash_manager)
+		injector = Injector(self.build_module())
 		
-		serie = datas.get_current_serie()
-
+		datas = injector.get_instance(SeriesData)
+		serie = datas.current_serie
+		store = injector.get_instance(SeriesStore)
+		
 		self.assertTrue(serie.name == "Plop")
 		
 		next_episode = serie.season.episode
-		cur_episode = bash_manager.get_current_stored_episode(serie.name, 2)
+		cur_episode = store.get_current_stored_episode(serie.name, 2)
 	
 		print("current episode stored {}".format(cur_episode))
 		print("next ep number {}".format(next_episode.number))
@@ -96,25 +116,43 @@ class TestBashManager(unittest.TestCase):
 		self.assertTrue(cur_episode == next_episode.number)
 		self.assertTrue(cur_episode == 2)
 
-		#self.assertTrue(len( next_episode.get_video_list() ) == 1)
+		self.assertTrue(len( next_episode.get_video_list() ) == 1)
 		self.assertTrue(len( serie.get_video_list() ) == 1)
 
 	def test_manager(self):
 		""" Test of manager : retrieving season path"""
-		bash_manager = BashSeriesManager(self.get_global_conffifile_fullpath())
+		fs_store = FsSeriesStore(self.get_global_conffifile_fullpath())
 		# datas = BashManagedSeriesData(bash_manager)
-		got = bash_manager.get_path_to_season("Plop", 2)
+		got = fs_store.get_path_to_season("Plop", 2)
 		self.assert_equivalent_path(got, os.path.join(self.cwd,"Plop/Season 2"))
 
 	def test_change_serie(self):
 		""" undone yet"""
-		pass
-		#bash_manager = BashSeriesManager(self.get_global_conffifile_fullpath())
-		# bash_
+		
+		injector = Injector(self.build_module())
+		series = injector.get_instance(SeriesData)
+		
+		
+		series.current_serie = "ZPlop"
+		self.assertTrue(series.current_serie.name == "ZPlop" )
+		series.current_serie = "Plop"
+		
+		self.assertTrue(series.current_serie.name == "Plop" )
+
+
+		series.current_serie.season.episode = 5
+
+		self.assertEquals(series.current_serie.season.episode.number, 5)
+		
+		series.current_serie.season = 10
+
+		self.assertEquals(series.current_serie.season.episode.number, 1)
+
+		# print(series)
 
 	def test_pattern(self):
 		""" testing file searching pattern creation"""
-		bash_manager = BashSeriesManager(self.get_global_conffifile_fullpath())
+		bash_manager = FsSeriesStore(self.get_global_conffifile_fullpath())
 
 		pattern = bash_manager.get_glob_pattern(1, 1, ["avi", "flv"])
 		self.assertTrue(re.search(pattern, 'Bidou s01e01.avi'))

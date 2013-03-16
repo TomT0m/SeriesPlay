@@ -7,7 +7,6 @@ from gi.repository import GObject # pylint: disable=E0611
 from twisted.internet import defer, reactor
 import twisted.internet.protocol as protocol
 from twisted.protocols.basic import NetstringReceiver
-#from twisted.internet.endpoints import *
 from twisted.internet.endpoints import TCP4ClientEndpoint #point
 
 from utils.messages import MessageEncoder
@@ -79,18 +78,13 @@ class EpisodeFinderClientFactory(protocol.Factory):
 
 	def buildProtocol(self, addr): #pylint: disable=C0103
 		return EpisodeFinderClientProtocol()
+from episode_video_finder import BaseEpisodeVideoFinder
 
-class NetworkEpisodeVideoFinder(GObject.GObject):
+class NetworkEpisodeVideoFinder(BaseEpisodeVideoFinder):
 	""" Gobject encapsulation of Twisted Client"""
-	__gsignals__ = { 
-		'candidates_found' : (GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE, ()), 
-		'file_downloaded' : (GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE, ()), 
-		'download_not_launched' : (GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE, ()),  
-		'download_launched' : (GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE, ())  
-        }
-	def __init__(self, episode):
-		GObject.GObject.__init__(self)
-		self.episode = episode
+	def __init__(self):
+		BaseEpisodeVideoFinder.__init__(self)
+		self.episode = None 
 		self.connected = False
 		self.protoc = None
 
@@ -138,6 +132,7 @@ class NetworkEpisodeVideoFinder(GObject.GObject):
 
 	def search_newep(self, episode):
 		""" entry point """
+		self.episode = episode
 		info("searching newep {}...".format(episode))
 		point = TCP4ClientEndpoint(reactor, "localhost", 8010)
 		self.got_results = defer.Deferred()

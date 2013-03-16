@@ -10,34 +10,31 @@ from ui.videotorrent_list_model import VideoResultStore
 
 from utils.on_event_deferred import OnEventDeferred
 
-#from snakeguice
+from snakeguice.decorators import inject
 
 import logging
 
-#class VideoFinderController(object):
-#	""" interface """
-#	def __init__(self):
-#		pass
-#
-#	def add_video_finder(self, episode, app):
-#		pass
+from utils.factory import FactoryFactory
+
 
 
 class VideoFinderController(object):
 	""" Controler class """
 
-	def __init__(self):
-		pass 
+	@inject(video_finder_creator = FactoryFactory)
+	def __init__(self, video_finder_creator):
+		self.video_finder_creator = video_finder_creator
 
-	def add_video_finder(self, episode, app):
+	def add_video_finder(self, app, episode):
 		""" Adding a new finder to the app"""
 		logging.info("adding video finder for ep {0}...".format(episode))
-		finder = episode_video_finder(episode)
-		window = self.app.iface.getitem("VideoSearchResultWindow")
-		candidates_view = self.app.iface.getitem("TorrentList")
+		finder = self.video_finder_creator.get()
 
-		dl_button = self.app.iface.getitem("ChooseTorrent")
-		cancel_button = self.app.iface.getitem("CancelChooseTorrent")
+		window = app.getitem("VideoSearchResultWindow")
+		candidates_view = app.getitem("TorrentList")
+
+		dl_button = app.getitem("ChooseTorrent")
+		cancel_button = app.getitem("CancelChooseTorrent")
 
 		clo = {"wait_for_click" : None}
 

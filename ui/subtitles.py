@@ -8,6 +8,8 @@ from pysrt import SubRipFile#, SubRipItem, SubRipTime
 
 from logging import info, debug
 
+from utils.cli import FileNameError
+
 class SubtitlesStore:
 	"""
 	GTK Store for showing subtitles into the UI

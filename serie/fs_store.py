@@ -7,15 +7,26 @@ import glob, re
 
 from logging import debug, info
 
-from serie_manager import SeriesManager, Serie, Episode, \
+from serie_manager import SeriesStore, Serie, Episode, \
 		Season, SeriesData
 
 from utils.cli import CommandExecuter, \
 		ConfigManager, FileNameError
 
 from app.config import Config
+from snakeguice import inject
+from snakeguice.injector import IInjector
 
-class BashSeriesStore(SeriesManager):
+from snakeguice.modules import Module
+
+class FsSerieModule(Module):
+	""" Module configuring a serie with a directory and file store"""
+	def configure(self, binder):
+		binder.bind(SeriesStore, to_instance=FsSeriesStore())
+		binder.bind(SeriesData, to=FsManagedSeriesData)
+
+
+class FsSeriesStore(SeriesStore):
 	""" Base class model for a set of Series managed by a bash store """
 
 	config_file_season_name = ".play_conf"	
@@ -30,7 +41,7 @@ class BashSeriesStore(SeriesManager):
 	fps_var = "SUBFPS"
 
 	def __init__(self, config_file = default_config_file_abs_name):
-		SeriesManager.__init__(self)
+		#pylint:disable=W0231
 		self.executer = CommandExecuter()
 		self.config_file_abs_name = config_file 
 		self.config_manager = ConfigManager( config_file )
@@ -79,16 +90,17 @@ class BashSeriesStore(SeriesManager):
 		num = self.get_stored_current_season_number(name)
 		return self.get_path_to_season(name, num)
 
-	def get_path_to_season(self, name, numsaison):
+	def get_path_to_season(self, name, numseason):
 		""" Get path to season @numseason of serie @name
 		"""
 		serie_path = self.get_path_to_serie(name)
-		pattern = '[Ss]*{}'.format(numsaison)
+		pattern = '[Ss]*{}'.format(numseason)
 
 		full_pattern = os.path.join(serie_path, pattern)
 		candidates = glob.glob(full_pattern)
 		if len(candidates) == 0:
-			raise Exception("Season {} path not found for '{}'".format(numsaison, name))
+			return os.path.join(serie_path, "Saison {}".format(numseason))
+			# raise Exception("Season {} path not found for '{}'".format(numsaison, name))
 
 		return candidates[0]
 
@@ -193,8 +205,8 @@ class BashSeriesStore(SeriesManager):
 		if os.path.exists(ficname):
 			return self.read_num_conf_var(ficname, \
 					self.play_current_episode_var)
-
-		raise Exception("Unexisting config file {}".format(ficname))
+		return None
+		# raise Exception("Unexisting config file {}".format(ficname))
 
 	def get_subtitle_candidates(self, serie_name, season_num, num_ep):
 		""" Returns the list of filename candidates for subtitles
@@ -275,7 +287,7 @@ class BashSeriesStore(SeriesManager):
 		assert(len(result)>=0)
 		return result
 
-class BashManagedEpisode(Episode):
+class FsManagedEpisode(Episode):
 	""" Episode info managed by bash scripts
 
 	TODO : finish implementation separation
@@ -286,13 +298,22 @@ class BashManagedEpisode(Episode):
 		assert(isinstance(season.number, numbers.Number))
 		self.manager = serie.manager
 	
-class BashManagedSeason(Season):
+	def get_video_list(self):
+		""" Returns video list """
+		return self.manager.get_video_candidates(self.serie.name, 
+					   self.season.number, 
+					   self.number)
+	def get_subtitle_list(self):
+		""" Returns video list """
+		return self.manager.get_subtitle_candidates(self.serie.name, 
+					   self.season.number,
+					      self.number)
+class FsManagedSeason(Season):
 	""" Season managed by config files"""
 	def __init__(self, serie, number, ep_number = 0):
 		self.manager = serie.manager
 		self._serie = serie
 		Season.__init__(self, serie, number, ep_number)
-		# self._number = ep_number
 		self._ep_number = self.serie.get_next_episode_in_season(self.number)
 
 	@property
@@ -303,22 +324,32 @@ class BashManagedSeason(Season):
 	@property
 	def episode(self):
 		""" getter for current episode in this season""" 
-		return BashManagedEpisode(self.serie, self, self._ep_number)
+		return FsManagedEpisode(self.serie, self, self._ep_number)
 	
-class BashManagedSerie(Serie):
+	@episode.setter
+	def episode(self, number):
+		""" setter for this season's episode """ 
+		self._ep_number = number
+
+
+	def get_episode(self, number):
+		""" returns a new Episode object of this season"""
+		return FsManagedEpisode(self.serie, self, number)
+
+class FsManagedSerie(Serie):
 	""" Serie managed by bash script for storage and info retrieval """
 
 	def __init__(self, name, series_manager):
 		self.manager = series_manager
 		Serie.__init__(self, name)
-		self.name = name
 		skip = None
-		fps = ""
+		fps = None
 		decay = None
 		self.subtitle_file_name = None
 		config = self.get_current_season_configfile()
 		self.season_num = self.get_stored_current_season_number()
-		
+		self._season = self.get_season(self.season_num)
+
 		if os.path.exists(config):
 			try:
 				skip = self.manager.read_num_conf_var(config, \
@@ -329,9 +360,9 @@ class BashManagedSerie(Serie):
 			try:
 				fps = self.manager.read_conf_var(config, \
 					self.manager.fps_var,
-					"")
+					None)
 			except ConfigManager.KeyException:
-				fps = ""
+				fps = None
 	
 			decay = self.manager.read_num_conf_var(config, \
 					self.manager.decay_time_var)
@@ -341,18 +372,25 @@ class BashManagedSerie(Serie):
 				self.subtitle_file_name = liste_sub[0]
 			self.season_num = self.manager\
 					.get_stored_current_season_number(self.name)
+
 		if skip != None :
 			self.skiptime = skip 
 		if decay != None :
 			self.decaytime = decay
 		
 		self.fps = fps
+		self._season = self.get_season(self.season_num)
+
 	@property
 	def season(self):
 		""" Getter for current season object"""
-		return self.get_season(self.season_num)
-	#@property
-	#def serie(self):
+		return self._season
+	
+	@season.setter
+	def season(self, num):
+		self._season = self.get_season(num)
+		self.season_num = num
+	
 	def get_stored_current_season_number(self):
 		""" return the stored current season number for this season"""
 		
@@ -374,7 +412,7 @@ class BashManagedSerie(Serie):
 	def get_next_episode(self):
 		""" next unseen episode number in season"""
 		# assert( i)
-		return BashManagedEpisode(self, 
+		return FsManagedEpisode(self, 
 				self.get_current_season_number(), 
 				self.get_next_episode_num())
 
@@ -390,10 +428,11 @@ class BashManagedSerie(Serie):
 	def get_season(self, number):
 		""" Getter for season object 'number' for this serie"""
 		ep_number = self.get_next_episode_in_season(number)
-		return BashManagedSeason(self, number, ep_number)
+		return FsManagedSeason(self, number, ep_number)
 
 	def on_seen_episode(self):
 		""" Callback when ep seen in this serie """
+		# TODO: finish refactoring
 		self.season_num = self.get_current_season_number()
 		self.season.num_episode = self.get_next_episode_num()
 		self.manager.write_conf_var(
@@ -402,14 +441,6 @@ class BashManagedSerie(Serie):
 				self.name)
 
         
-	def set_current_season_number(self, num):
-		""" Setter for current season """
-		if not isinstance(num, numbers.Number):
-			raise ValueError(num)
-
-		Serie.set_current_season_number(self, num)
-		self.set_current_episode_number(self.get_next_episode_in_season(num))
-
 	def set_current_episode_number(self, num):
 		""" Setter for current episode number in current serie 
 		and current season (TODO: check for deletion)"""
@@ -490,38 +521,34 @@ class BashManagedSerie(Serie):
 		""" TODO : to implement ?"""
 		pass	
 
-class BashManagedSerieFactory:
+class FsManagedSerieFactory:
 	""" Factory for serie managed by bash scripts """
 	def __init__(self, manager):
 		self.manager = manager
 
 	def create_serie(self, name):
 		""" Factory method, serie """
-		return BashManagedSerie(name, self.manager)
+		return FsManagedSerie(name, self.manager)
 	
 	def create_serie_manager(self):
 		""" Factory method, serie list """
-		return BashManagedSeriesData(self.manager, self)
+		return FsManagedSeriesData(self.manager, self)
 
 
-class BashManagedSeriesData(SeriesData):
+class FsManagedSeriesData(SeriesData):
 	""" Serie info retrieved by bash scripts, historical"""
-	def __init__(self, manager, serie_factory = None):
-		# SeriesData.__init__(self)
-		self.manager = manager
-		self.serie_factory = serie_factory
-		if not self.serie_factory:
-			self.serie_factory = BashManagedSerieFactory(manager)
+	
+	@inject(injector = IInjector)
+	def __init__(self, injector):
+		SeriesData.__init__(self, injector)
 		
-		liste = manager.get_serie_list()
-		SeriesData.__init__(self, manager.get_current_serie_name(), liste)
-
 	def get_base_path(self):
 		""" Returns path of series storage """
-		return self.manager.get_absolute_path()
+		return self.store.get_absolute_path()
 	
 	def add_serie(self, name):
 		""" add a serie to the store, from his name """
-		debug("fifis adding serie")
-		self.series[name] = self.serie_factory.create_serie(name)
+		debug(" ---------------------------- fifis adding serie")
+		self.series[name] = FsManagedSerie(name, self.store)
+
 

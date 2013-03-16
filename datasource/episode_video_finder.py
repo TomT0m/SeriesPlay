@@ -15,10 +15,10 @@ from datasource import dl_manager
 from datasource import play_tpb_search
 from utils.messages import MessageEncoder
 
-class EpisodeVideoFinder(GObject.GObject):
+class BaseEpisodeVideoFinder(GObject.GObject):
 	""" 
-	Gobject class for asynchronous video finding.
-	emits signals when search is done
+	Gobject baseclass for asynchronous video finding.
+	signals definition emits signals when search is done
 
 	"""
 	__gsignals__ = { 
@@ -28,9 +28,19 @@ class EpisodeVideoFinder(GObject.GObject):
 		'download_launched' : (GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE, ())  
 	}
 
-	def __init__(self, episode):
+	def __init__(self):
 		GObject.GObject.__init__(self)
-		self.episode = episode
+
+class EpisodeVideoFinder(BaseEpisodeVideoFinder):
+	""" 
+	Gobject class for asynchronous video finding.
+	emits signals when search is done
+
+	"""
+
+	def __init__(self):
+		BaseEpisodeVideoFinder.__init__(self)
+		self.episode = None # episode
 		self.candidates = None
 
 	def search_newep(self, episode):
@@ -40,6 +50,8 @@ class EpisodeVideoFinder(GObject.GObject):
 
 		returns a defered which trigers when the search is done
 		"""
+		self.episode = episode
+
 		def on_found(results):
 			""" callback trigering when search is done"""
 			debug("emitting candidates found")
@@ -138,7 +150,7 @@ class EpisodeFinderServer(NetstringReceiver):
 			info(" ->: Err {}".format(err))
 			return False
 
-		self.episode_video_finder = EpisodeVideoFinder(episode)
+		self.episode_video_finder = EpisodeVideoFinder()
 		wait_for_result = self.episode_video_finder.search_newep(episode)
 		return wait_for_result\
 				.addCallback(on_result_found)\
