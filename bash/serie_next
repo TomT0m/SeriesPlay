@@ -12,7 +12,7 @@ read_conf "SEASON_MAX" 10 "$FIC_CONF"
 CMD="play"
 # getopt "s:"
 usage="$0 [-l(istall)|-g] [-s numseason [-e numep | -q] ] [-h print this help]"
-while getopts "lgqs:o:e:h:SG:f:d:t:" options; do
+while getopts "lgqs:o:e:h:SG:f:d:t:v:" options; do
   case $options in
     s ) SEASON=$OPTARG;;
     e ) NUMEP=$OPTARG;;
@@ -24,6 +24,7 @@ while getopts "lgqs:o:e:h:SG:f:d:t:" options; do
     d ) DECAYTIME=$OPTARG;;
     g ) CMD="getnum" ;;
     t ) SUBTITLES="-t" ; SUBFILE="$OPTARG" ;;
+    v ) VID="-v" ; VIDFILE="$OPTARG" ;;
     \? ) echo $usage
          exit 1;;
     * ) echo $usage
@@ -60,7 +61,7 @@ if [ ! -z "$rep" ] ; then
 	init_rep "$rep" "$SEASON"
 	cd "$rep"
 	if [ ! -z "$NUMEP" ] ; then 
-		SEASON="$SEASON" NAME="$NAME" play $OPT -e $NUMEP $(if [ ! -z "$SKIPTIME" ] ; then echo -g $SKIPTIME; fi) -f "$FPS" $(if [ ! -z "$DECAYTIME" ] ; then echo -s $DECAYTIME; fi) "$SUBTITLES" "$SUBFILE"
+		SEASON="$SEASON" NAME="$NAME" play $OPT -e $NUMEP $(if [ ! -z "$SKIPTIME" ] ; then echo -g $SKIPTIME; fi) -f "$FPS" $(if [ ! -z "$DECAYTIME" ] ; then echo -s $DECAYTIME; fi) "$SUBTITLES" "$SUBFILE" "$VID" "$VIDFILE"
 	elif [ ! -z "$QUERY_NUMEP" ] ; then 
 		NAME="$NAME" SEASON="$SEASON" play $OPT -e "$(play -l|zenity --list --column 1 --column fic --column \"cur?\")" $(if [ ! -z "$SKIPTIME" ] ; then echo -g $SKIPTIME; fi) -f "$FPS" $(if [ ! -z "$DECAYTIME" ] ; then echo -s $DECAYTIME; fi) "$SUBTITLES" "$SUBFILE"
 

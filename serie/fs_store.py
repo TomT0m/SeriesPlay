@@ -254,7 +254,7 @@ class FsSeriesStore(SeriesStore):
 			regex = re.compile(re_pattern)
 			all_files = os.listdir(path)
 
-			direct = [ x for x in all_files 
+			direct = [ os.path.join(path, x) for x in all_files 
 					if regex.search(x) ]
 			result = direct
 

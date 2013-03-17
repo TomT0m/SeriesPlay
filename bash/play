@@ -15,9 +15,9 @@ read_conf CUR 1 "$CONF_FILE"
 read_conf NEED_SUB "on" "$CONF_FILE"
 readConf "$CONF_FILE" SUBFPS ""
 
-# getopt "s:"
-usage="$0 [-e numep] [-s decaysub] [-o options] [-g generictime] [-s subdelay] [-h print this help] [ -f subfps ] [-P print current episode number] "
-while getopts "lg:s:o:e:hSqPif:LVt:" options; do
+usage="$0 [-e numep] [-s decaysub] [-o options] [-g generictime] [-s subdelay] [-h print this help] [ -f subfps ] [-P print current episode number] [-v videofile]"
+
+while getopts "lg:s:o:e:hSqPif:LVt:v:" options; do
   case $options in
     g ) GENERICTIME=$OPTARG;;
     s ) DECALAGESUB=$OPTARG;;
@@ -31,6 +31,7 @@ while getopts "lg:s:o:e:hSqPif:LVt:" options; do
     q ) cd .. ; exec serie_next -q ;;
     f ) SUBFPS="$OPTARG" ;;
     t ) SUB="$OPTARG" ; if [ -z "$SUB" ] ; then NEED_SUB="" ; fi ;;
+    v ) VID="$OPTARG" ;; 
     P ) echo $CUR ; exit ;; 
     \? ) echo $usage
          exit 1;;
@@ -68,7 +69,6 @@ function getExtFile {
         shift 2
         for ext in  $@ ; do
                 local file_pattern="$( getMatchingMotif "$saison" "$numep" "$ext" )"
-		# echo "getting file" >&2
                 local file="$( getfile "$file_pattern" "$saison" "$numep"  "$ext" )"
                 if [ -r "$file" -a ! -z "$file_pattern" ] ; then
                         break;
@@ -86,17 +86,10 @@ function getExtFiles {
         for ext in  $@ ; do
 
         	for motif in "$(patternList "$saison" "$numep" )" ; do
-                #motifsub="$( getMatchingMotif "$saison" "$numep" "$ext")"
-                	# subfile="$( 
 			getfiles "$motif" "$saison" "$numep"  "$ext" 
-                	# if [ -e "$subfile" -a ! -z "$motifsub" ] ; then
-                        # break;
-			#	echo "$subfile"
-                	# fi
                 subfile=""
 		done
         done
-        # echo "$subfile" 
 }
 
 function getDVDSubsBasename {
@@ -137,18 +130,11 @@ function stop_screensaver {
 	echo "$!"
 	return
 }
-#function getCan
 function start_screensaver {
 	kill "$1" 
 }
 
 # workaround pour désactiver la mise en veille
-if [ -f ../play_conf ]; then
-	NUM_SAISON=read_c
-fi
-
-
-#MOTIF='S0?[1..9]E' '[0-9]x [' 
 
 function escape_sub(){
 	echo "$1" |  sed 's/,/\\,/g'
@@ -165,7 +151,6 @@ function gen_list(){
 		shopt -s nullglob
 		cand=$(echo *[^1-9]${numep}[^0-9]*.*)
 		if [ ! -z "$cand" ] ; then
-			# echo --------------------------------------------------------------- $numep
 			cand="$(getExtFile "$saison" "$numep" avi mp4 mov mkv wmv)"
 			if [ -f "$cand" ] ; then
 				echo $numep
@@ -179,9 +164,6 @@ function gen_list(){
 		fi
 	done
 }
-
-# function substitute {
-# }
 
 function patternList {
         #echo "PatternList ..."
@@ -211,7 +193,6 @@ function getfile {
                 break;
         done
         IFS="$OLDIFS"       
-        # echo "$trouve"
 
 }
 
@@ -225,17 +206,14 @@ function getfiles {
         trouve=""
 	local OLDIFS="$IFS"
         IFS="\n"
-	# echo "searching for ${extension}"
 	 shopt -u nullglob
         (ls *."${extension}" 2>/dev/null | egrep "$genmotif.*${extension}\^" ) 2>/dev/null | while read candidate  ; do
                 if [ -e "$candidate" ] ; then
                         echo "$candidate"
                 fi
-                # break;
         done
 
         IFS="$OLDIFS"       
-        # echo "$trouve"
 }
 
 function guessSeason {
@@ -250,7 +228,6 @@ function guessSerieName {
         echo "$name"
 }
 
-
 function play {
         local saison="$1"
         local numep="$2"
@@ -259,33 +236,29 @@ function play {
         local skip="$5"
         local subfps="$6"
 	local subfile="$7"
-
-        local file="$(getExtFile "$saison" "$numep" avi mkv )"
+	local vidfile="$8"
 	
-	echo "$file" ; 
+	# selection of video file if none provided
+		
+	echo "$vidfile" ; 
         
-	# if [ -z "$subfile" ] ; then subfile="$( getExtFile "$saison" "$numep" srt sub )" ; fi
-        
-# 	local DVDsubBaseName="$(getDVDSubsBasename "$saison" "$numep")"
-
-
 	if [ ! -z "$subfps" ] ; then
 		options="$options -subfps $subfps"
 	fi
 
-	if [ ! -z "$file" ] ; then
+	if [ ! -z "$vidfile" ] ; then
 		
 		local DVDsubBaseName="$(getDVDSubsBasename "$saison" "$numep")"
 
 		if [ ! -z "$DVDsubBaseName" ] ; then
-			mplayer -quiet "$file" -vobsub "$DVDsubBaseName" -subdelay "$subdelay" -fs -ss "$skip" $options -slang "fr,en"
+			mplayer -quiet "$vidfile" -vobsub "$DVDsubBaseName" -subdelay "$subdelay" -fs -ss "$skip" $options -slang "fr,en"
 			return 0
 		elif [ ! -z "$subfile" ] ; then
-			mplayer -quiet "$file" -sub "$(escape_sub "$subfile")" -subdelay "$subdelay" -fs -ss "$skip" $options
+			mplayer -quiet "$vidfile" -sub "$(escape_sub "$subfile")" -subdelay "$subdelay" -fs -ss "$skip" $options
 			return 0
 		else
 			echo "no out subfile ..."
-			mplayer -quiet "$file" -fs -ss "$skip" $options -alang "fr,en"
+			mplayer -quiet "$vidfile" -fs -ss "$skip" $options -alang "fr,en"
 			return 0
 		fi
 	else
@@ -334,9 +307,7 @@ fi
 shopt -s nullglob
 
 PLAY=$(printf "%02d" $CUR)
-
 NUM_SEASON="$(guessSeason)"
-FILE="$(getExtFile "$NUM_SEASON" "$CUR" avi mkv wmv mp4)"
 
 if [ "$MODE" == "list subtitles candidates" ] ; then
 	list_subtitle_candidate "$NUM_SEASON" "$CUR"
@@ -349,29 +320,36 @@ if [ "$MODE" == "list video candidates" ] ; then
  	exit 0
 fi
 
+# search subtitles
+
 if [ -z "$SUB" ] ; then
-if [ ! -z "$MANUAL_SUB_SEL" ] ; then
-	SUB=$( ask_for_sub "$FILE" )
-elif [ ! -z "$NEED_SUB" ] ; then
-        if [ -z "$SUB" ] ; then SUB="$( getExtFile "$NUM_SEASON" "$CUR" srt sub )" ; fi
-	if [ ! -f "$SUB" ] ; then
+	if [ ! -z "$MANUAL_SUB_SEL" ] ; then
 		SUB=$( ask_for_sub "$FILE" )
+	elif [ ! -z "$NEED_SUB" ] ; then
+		if [ -z "$SUB" ] ; then SUB="$( getExtFile "$NUM_SEASON" "$CUR" srt sub )" ; fi
+		if [ ! -f "$SUB" ] ; then
+			SUB=$( ask_for_sub "$FILE" )
+		fi
 	fi
 fi
-fi
-# search subtitles
 
 echo "SUBTITLE_FILE : $SUB"
 
-#exit
+# search video file
 
-if [ -f "$FILE" ] ; then
+if [ -z "$VID" -o ! -e "$VID" ] ; then
+	VID="$(getExtFile "$NUM_SEASON" "$CUR" avi mkv wmv mp4)"
+fi
+
+echo "VIDEO_FILE : $VID"
+
+if [ -f "$VID" ] ; then
 	MPD_STATUS="$(stopmpd)"
 	SCREENSAVER_STATUS="$(stop_screensaver)"
 	
 	osd "$(guessSerieName) - saison $SEASON - ep $CUR "
 
-	play "${NUM_SEASON}" "${CUR}" "${DECALAGESUB}" "${OPTIONS}" "${GENERICTIME}" "${SUBFPS}" "${SUB}"  
+	play "${NUM_SEASON}" "${CUR}" "${DECALAGESUB}" "${OPTIONS}" "${GENERICTIME}" "${SUBFPS}" "${SUB}" "${VID}" 
 	
 	startmpd "$MPD_STATUS"
 	start_screensaver "$SCREENSAVER_STATUS"

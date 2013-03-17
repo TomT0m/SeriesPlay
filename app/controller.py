@@ -254,9 +254,13 @@ class PlayEventManager(object):
 			if subfile:
 				command.add_option_param("-t", subfile)
 			
+			vidfile = self.app.getitem("NomficLabel").get_text()
+			if vidfile:
+				command.add_option_param("-v", vidfile)
+			
 			#TODO: replace this legacy code
 
-			os.environ["SEASON"] = self.serie_model.get_current_serie().name
+			os.environ["SEASON"] = self.serie_model.current_serie.name
 			
 			self.player_handler.execute_play_command(self, command.get_command(), cwd = chemin_serie)
 	
@@ -435,6 +439,8 @@ class PlayEventManager(object):
 		else:
 			episode = Episode(serie, serie.season, newep)
 			self.add_video_finder(episode)
+			self.app.getitem("NomficLabel").set_text("")
+		
 		self.update_subs()
 
 

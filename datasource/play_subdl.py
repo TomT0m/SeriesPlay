@@ -138,24 +138,26 @@ class TVsubtitlesSubdownloader(Subdownloader):
 
 		parser = etree.HTMLParser()
 		tree = etree.parse(StringIO(html), parser)
+		try:	
+			table = (tree.xpath(request)[0])
+			debug(etree.tostring(table, pretty_print=True))
 		
-		table = (tree.xpath(request)[0])
-		debug(etree.tostring(table, pretty_print=True))
-		
-		req_row_ep = "tr[contains(td/text(),'{0}')]"\
-				.format(ep_string_ref)
-		debug(req_row_ep)
-		req_row_ep = "tr[td/text()='{0}']".format(ep_string_ref)
-		debug(req_row_ep)
-		ep_row = table.xpath(req_row_ep)
-		debug (etree.tostring(ep_row[0], pretty_print=True))
-		req_url = "td/a"
-		link = ep_row[0].xpath(req_url)
-		url = link[0].attrib["href"]
+			req_row_ep = "tr[contains(td/text(),'{0}')]"\
+					.format(ep_string_ref)
+			debug(req_row_ep)
+			req_row_ep = "tr[td/text()='{0}']".format(ep_string_ref)
+			debug(req_row_ep)
+			ep_row = table.xpath(req_row_ep)
+			debug (etree.tostring(ep_row[0], pretty_print=True))
+			req_url = "td/a"
+			link = ep_row[0].xpath(req_url)
+			url = link[0].attrib["href"]
 
-		ep_id = url.split("-")[1].split(".")[0]
+			ep_id = url.split("-")[1].split(".")[0]
 
-		return ep_id
+			return ep_id
+		except IndexError:
+			return None
 
 	@classmethod
 	def get_sublist_from_epid_url(cls, ep_id, lang="en"):
