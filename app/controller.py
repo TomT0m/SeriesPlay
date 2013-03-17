@@ -123,6 +123,11 @@ class ControllerModule(Module):
 		binder.bind(VideoFinderController, to = VideoFinderController)
 		binder.bind(ExternalPlayerHandler, to = StdExternalPlayerHandler)
 
+
+def get_combo_value(combo):
+	itera = combo.get_active_iter()
+	return combo.get_model().get_value(itera, 0)
+
 class PlayEventManager(object):
 	""" Class regrouping l callbacks and
 	data updating functions
@@ -200,7 +205,6 @@ class PlayEventManager(object):
 		Action : updates the Serie Combo
 		"""
 		logging.info("Recherche d'une nouvelle série")
-		logging.info("Recherche d'une nouvelle série")
 		model = self.app.getitem("SerieListCombo").get_model()
 		serie_list = self.manager.get_serie_list()
 		new_items = [x for x in serie_list if not self.serie_model.series.has_key(x) ]
@@ -245,7 +249,10 @@ class PlayEventManager(object):
 			if fps:
 				command.add_option_param("-f", unicode(fps))
 			command.add_option_param("-d", unicode(serie.get_decay_time()))
-			command.add_option_param("-t", unicode(epi.get_subtitle_file()))
+			
+			subfile = get_combo_value(self.app.getitem("CandidateSubsCombo"))
+			if subfile:
+				command.add_option_param("-t", subfile)
 			
 			#TODO: replace this legacy code
 
@@ -285,10 +292,16 @@ class PlayEventManager(object):
 	#self.app.getitem("VideoZone").window.xid)
 #	pass
 # else:
-		serie = self.serie_model.get_current_serie()
-		filename = serie.get_absolute_filename(serie.get_video_list()[0])
+		serie = self.serie_model.current_serie
+		vid_list = serie.season.episode.get_video_list()
+		
+		filename = None
+		if len(vid_list) > 0:
+			filename = serie.get_absolute_filename(vid_list[0])
+		
 		path = serie.get_path_to_current_season()
 		subfile = path + serie.season.episode.get_subtitle_list()[0]
+		
 		if filename != None :
 			self.player_status.play(filename)
 			(width, height)= self.player_status.get_video_resolution()
@@ -444,7 +457,6 @@ class PlayEventManager(object):
 			val = widg.get_model().get_value(widg.get_active_iter(), 0)
 			self.serie_model.current_serie = val
 			self.update_serie_view()
-
 	def put_monitor_on_saison(self):
 		""" Set up monitoring of directory
 		* Installs monitors on current season directory
