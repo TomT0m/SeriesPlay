@@ -1,0 +1,3 @@
+[submodule "snakeguice"]
+	path = snakeguice
+	url = https://github.com/dstanek/snake-guice.git
