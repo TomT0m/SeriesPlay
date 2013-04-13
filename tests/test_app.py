@@ -7,11 +7,9 @@ import twisted
 from twisted.internet import reactor
 
 
-from gi.repository import Gtk #pylint: disable=E0611 
-
-from app.main_app import App, VideoFinderService
-from app.controller import ControllerModule, VideoFinderController, PlayEventManager, \
-		ExternalPlayerHandler
+from app.main_app import App
+from app.controller import VideoFinderController, PlayEventManager, \
+		ExternalPlayerHandler, get_combo_value
 from app.config import Config
 
 
@@ -23,8 +21,6 @@ from serie.fs_store import FsSeriesStore, FsManagedSeriesData
 
 from datasource.play_subdl import EmptySubdownloader, Subdownloader
 from snakeguice import Injector
-
-from gi.repository import GObject
 
 from datasource.episode_video_finder import BaseEpisodeVideoFinder
 import app.service
@@ -165,5 +161,8 @@ class TestVideotorrentController(unittest.TestCase):
 		print_app_status(app)
 
 		self.assertEquals((app.selected_season(), app.selected_numep()), (8, 1))
+
+		plop = get_combo_value(app.getitem("CandidateSubsCombo"))
+		self.assertEquals(plop, None)
 
 		app.stop()

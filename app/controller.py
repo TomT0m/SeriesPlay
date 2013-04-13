@@ -126,6 +126,8 @@ class ControllerModule(Module):
 
 def get_combo_value(combo):
 	itera = combo.get_active_iter()
+	if not itera:
+		return None
 	return combo.get_model().get_value(itera, 0)
 
 class PlayEventManager(object):
