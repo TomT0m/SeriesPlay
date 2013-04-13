@@ -178,7 +178,13 @@ MPLayer esclave</property>
           <object class="GtkLabel" id="NomficLabel">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="label" translatable="yes">Fichier trouve</property>
+            <property name="label" translatable="yes">Aucun fichier</property>
+            <property name="ellipsize">start</property>
+            <property name="max_width_chars">50</property>
+            <attributes>
+              <attribute name="style" value="italic"/>
+              <attribute name="background" value="#afa2c8dfcb67"/>
+            </attributes>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -205,7 +211,7 @@ MPLayer esclave</property>
                     </child>
                     <child>
                       <object class="GtkCheckButton" id="SetupModeCheck">
-                        <property name="label" translatable="yes">Mode mise au point</property>
+                        <property name="label" translatable="yes">Ne pas avancer</property>
                         <property name="use_action_appearance">False</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
@@ -270,17 +276,21 @@ MPLayer esclave</property>
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkLabel" id="label2">
+                      <object class="GtkLabel" id="subs label">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">label</property>
+                        <property name="label" translatable="yes">Sous titres ...</property>
+                        <attributes>
+                          <attribute name="style" value="italic"/>
+                          <attribute name="variant" value="small-caps"/>
+                        </attributes>
                       </object>
                     </child>
                     <child>
                       <object class="GtkLabel" id="label3">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">label</property>
+                        <property name="label" translatable="yes">Réglages</property>
                       </object>
                       <packing>
                         <property name="left_attach">1</property>
