@@ -10,7 +10,7 @@ BASH_SCRIPTS = glob.glob("bash/*")
 
 setup(
     name = 'SeriePlay',
-    version = '1.0dev',
+    version = '1.0dev2',
     packages = ['datasource', 'ui', 'utils', \
 		    'pysrt', 'gobj_player', \
 		    'serie', 'tests', 'app'],
