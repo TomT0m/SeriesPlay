@@ -32,6 +32,8 @@ class ControllerFactory(object):
 	def create(self, app, series, injector):
 		""" factory method"""
 		return PlayEventManager(app, series, injector)
+class VideoFinderService(object):
+	pass
 
 class AppModule(Module):
 	""" snake guice application module configurator"""
@@ -49,6 +51,8 @@ class AppModule(Module):
 		binder.bind(Config, to_instance = config)
 		
 		binder.bind(SeriesData, to = FsManagedSeriesData)
+		binder.bind(VideoFinderService, 
+	      		to_instance = PipeService("video_finder_server.py"))
 
 class App(object):
 	"""Class for main Manager app"""
@@ -64,7 +68,7 @@ class App(object):
 		"""
 		# beginning of a Code Goldberg Machine
 		# Keep it overly complex
-		self.async_start_service(PipeService("video_finder_server.py"),
+		self.async_start_service(self.injector.get_instance(VideoFinderService),
 						self.video_finder_key)
 
 	def _get_service(self, key):

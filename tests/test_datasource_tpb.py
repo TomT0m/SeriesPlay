@@ -388,6 +388,252 @@ clicksor_text_link_color = ''; clicksor_enable_text_link = false;
 </body>
 </html>
 """
+
+
+__sample_html_v2__ = """<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" >
+<head>
+	<title>The Pirate Bay - The galaxy's most resilient bittorrent site</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+	<link rel="search" type="application/opensearchdescription+xml" href="//static.thepiratebay.gl/opensearch.xml" title="Search The Pirate Bay" />
+	<link rel="stylesheet" type="text/css" href="//static.thepiratebay.gl/css/pirate6.css"/>
+	<style type="text/css">
+		.searchBox{
+			margin: 6px;
+			width: 300px;
+			vertical-align: middle;
+			padding: 2px;
+		        background-image:url('//static.thepiratebay.gl/img/icon-https.gif');
+        		background-repeat:no-repeat;
+		        background-position: right;
+		}
+
+		.detLink {
+			font-size: 1.2em;
+			font-weight: 400;
+		}
+		.detDesc {
+			color: #4e5456;
+		}
+		.detDesc a:hover {
+			color: #000099;
+			text-decoration: underline;
+		}
+		.sortby {
+			text-align: left;
+			float: left;
+		}
+		.detName {
+			padding-top: 3px;
+			padding-bottom: 2px;
+		}
+		.viewswitch {
+			font-style: normal;
+			float: right;
+			text-align: right;
+			font-weight: normal;
+		}
+	</style>
+	<script src="//static.thepiratebay.gl/js/tpb.js" type="text/javascript"></script>
+
+        <style type="text/css">
+		table#sponsoredLinks a { border: 0; }
+		table#sponsoredLinks a:hover { text-decoration: underline; }
+                table#sponsoredLinks td.downbut a {border: none;}
+                table#sponsoredLinks {min-width: 400px; text-align: left; width: 100%; margin: 0 0 10px 0; border-left: solid 1px #ffffff;}
+                table#sponsoredLinks th {padding: 7px; background-color: #D2B9A6;}
+		table#sponsoredLinks td {padding: 2px 4px; background-color: #F6F1EE; font-weight: bold; font-style: italic; text-align: right; white-space: nowrap;}
+                table#sponsoredLinks td img {border: 0;}
+                table#sponsoredLinks td.first {font-style: normal; text-align: left;}
+                table#sponsoredLinks td.first img {margin: 0 5px 0 0; vertical-align: -7px;}
+                table#sponsoredLinks tr:hover td {background-color: #FFFFFF;}
+                table#sponsoredLinks td.downbut {width: 170px;}
+        </style>
+
+	<script language="javascript" type="text/javascript">if (top.location != self.location) {top.location.replace(self.location);}</script>
+</head>
+
+<body>
+
+	<div id="header">
+
+
+		<div class="ad">
+		 <iframe src="http://cdn1.adexprt.com/exo_na/top.html" width="468" height="60" frameborder="0" scrolling="no"></iframe>
+		</div>
+			<form method="get" id="q" action="/s/">
+			<a href="/" class="img"><img src="//static.thepiratebay.gl/img/tpblogo_sm_ny.gif" id="TPBlogo" alt="The Pirate Bay" /></a>
+			<b><a href="/" title="Search Torrents">Search Torrents</a></b>&nbsp;&nbsp;|&nbsp;
+			<a href="/browse" title="Browse Torrents">Browse Torrents</a>&nbsp;&nbsp;|&nbsp;
+			<a href="/recent" title="Recent Torrent">Recent Torrents</a>&nbsp;&nbsp;|&nbsp;
+			<a href="/tv" title="TV shows">TV shows</a>&nbsp;&nbsp;|&nbsp;
+			<a href="/music" title="Music">Music</a>&nbsp;&nbsp;|&nbsp;
+			<a href="/top" title="Top 100">Top 100</a>
+			<br /><input type="search" class="inputbox" title="Pirate Search" name="q" placeholder="Search here..." value="Dirty sexy money S02e07" /><input value="Pirate Search" type="submit" class="submitbutton" /><br />			<label for="audio" title="Audio"><input id="audio" name="audio" onclick="javascript:rmAll();" type="checkbox"/>Audio</label>
+			<label for="video" title="Video"><input id="video" name="video" onclick="javascript:rmAll();" type="checkbox"/>Video</label>
+			<label for="apps" title="Applications"><input id="apps" name="apps" onclick="javascript:rmAll();" type="checkbox"/>Applications</label>
+			<label for="games" title="Games"><input id="games" name="games" onclick="javascript:rmAll();" type="checkbox"/>Games</label>
+			<label for="other" title="Other"><input id="other" name="other" onclick="javascript:rmAll();" type="checkbox"/>Other</label>
+
+			<select id="category" name="category" onchange="javascript:setAll();">
+        	        	<option value="0">All</option>
+				<optgroup label="Audio">
+					<option value="101">Music</option>
+					<option value="102">Audio books</option>
+					<option value="103">Sound clips</option>
+					<option value="104">FLAC</option>
+					<option value="199">Other</option>
+				</optgroup>
+				<optgroup label="Video">
+					<option value="201">Movies</option>
+					<option value="202">Movies DVDR</option>
+					<option value="203">Music videos</option>
+					<option value="204">Movie clips</option>
+					<option value="205">TV shows</option>
+					<option value="206">Handheld</option>
+					<option value="207">HD - Movies</option>
+					<option value="208">HD - TV shows</option>
+					<option value="209">3D</option>
+					<option value="299">Other</option>
+				</optgroup>
+				<optgroup label="Applications">
+					<option value="301">Windows</option>
+					<option value="302">Mac</option>
+					<option value="303">UNIX</option>
+					<option value="304">Handheld</option>
+					<option value="305">IOS (iPad/iPhone)</option>
+					<option value="306">Android</option>
+					<option value="399">Other OS</option>
+				</optgroup>
+				<optgroup label="Games">
+					<option value="401">PC</option>
+					<option value="402">Mac</option>
+					<option value="403">PSx</option>
+					<option value="404">XBOX360</option>
+					<option value="405">Wii</option>
+					<option value="406">Handheld</option>
+					<option value="407">IOS (iPad/iPhone)</option>
+					<option value="408">Android</option>
+					<option value="499">Other</option>
+				</optgroup>
+				<optgroup label="Other">
+					<option value="601">E-books</option>
+					<option value="602">Comics</option>
+					<option value="603">Pictures</option>
+					<option value="604">Covers</option>
+					<option value="605">Physibles</option>
+					<option value="699">Other</option>
+				</optgroup>
+			</select>
+
+			<input type="hidden" name="page" value="0" />
+			<input type="hidden" name="orderby" value="99" />
+		</form>
+	</div><!-- // div:header -->
+
+	<h2><span>Search results: Dirty sexy money S02e07</span>&nbsp;Displaying hits from 1 to 2 (approx 2 found)</h2>
+<div id="SearchResults"><div id="content">
+			<div id="sky-right">
+				 <iframe src="http://cdn1.adexprt.com/exo_na/sky2.html" width="160" height="600" frameborder="0" scrolling="no" style="padding-top: 100px"></iframe>
+			</div>
+	<div id="main-content">
+
+		 <iframe src="http://cdn1.adexprt.com/exo_na/center.html" width="728" height="90" frameborder="0" scrolling="no"></iframe>
+	<table id="searchResult">
+	<thead id="tableHead">
+		<tr class="header">
+			<th><a href="/search/Dirty%20sexy%20money%20S02e07/0/13/0" title="Order by Type">Type</a></th>
+			<th><div class="sortby"><a href="/search/Dirty%20sexy%20money%20S02e07/0/1/0" title="Order by Name">Name</a> (Order by: <a href="/search/Dirty%20sexy%20money%20S02e07/0/3/0" title="Order by Uploaded">Uploaded</a>, <a href="/search/Dirty%20sexy%20money%20S02e07/0/5/0" title="Order by Size">Size</a>, <span style="white-space: nowrap;"><a href="/search/Dirty%20sexy%20money%20S02e07/0/11/0" title="Order by ULed by">ULed by</a></span>, <a href="/search/Dirty%20sexy%20money%20S02e07/0/7/0" title="Order by Seeders">SE</a>, <a href="/search/Dirty%20sexy%20money%20S02e07/0/9/0" title="Order by Leechers">LE</a>)</div><div class="viewswitch"> View: <a href="/switchview.php?view=s">Single</a> / Double&nbsp;</div></th>
+			<th><abbr title="Seeders"><a href="/search/Dirty%20sexy%20money%20S02e07/0/7/0" title="Order by Seeders">SE</a></abbr></th>
+			<th><abbr title="Leechers"><a href="/search/Dirty%20sexy%20money%20S02e07/0/9/0" title="Order by Leechers">LE</a></abbr></th>
+		</tr>
+	</thead>
+	<tr>
+		<td class="vertTh">
+			<center>
+				<a href="/browse/200" title="More from this category">Video</a><br />
+				(<a href="/browse/205" title="More from this category">TV shows</a>)
+			</center>
+		</td>
+		<td>
+<div class="detName">			<a href="/torrent/4553096/Dirty.Sexy.Money.S02E07.The.Summer.House.HDTV.XviD-FQM" class="detLink" title="Details for Dirty.Sexy.Money.S02E07.The.Summer.House.HDTV.XviD-FQM">Dirty.Sexy.Money.S02E07.The.Summer.House.HDTV.XviD-FQM</a>
+</div>
+<a href="magnet:?xt=urn:btih:29796f1ef5776997933437deac4b079c70239604&dn=Dirty.Sexy.Money.S02E07.The.Summer.House.HDTV.XviD-FQM&tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A80&tr=udp%3A%2F%2Ftracker.publicbt.com%3A80&tr=udp%3A%2F%2Ftracker.istole.it%3A6969&tr=udp%3A%2F%2Ftracker.ccc.de%3A80" title="Download this torrent using magnet"><img src="//static.thepiratebay.gl/img/icon-magnet.gif" alt="Magnet link" /></a>			<a href="//torrents.thepiratebay.se/4553096/Dirty.Sexy.Money.S02E07.The.Summer.House.HDTV.XviD-FQM.4553096.TPB.torrent" title="Download this torrent"><img src="//static.thepiratebay.gl/img/dl.gif" class="dl" alt="Download" /></a><a href="/user/AiTB"><img src="//static.thepiratebay.gl/img/vip.gif" alt="VIP" title="VIP" style="width:11px;" border='0' /></a><img src="//static.thepiratebay.gl/img/11x11p.png" />
+			<font class="detDesc">Uploaded 12-04&nbsp;2008, Size 362.5&nbsp;MiB, ULed by <a class="detDesc" href="/user/AiTB/" title="Browse AiTB">AiTB</a></font>
+		</td>
+		<td align="right">0</td>
+		<td align="right">1</td>
+	</tr>
+	<tr>
+		<td class="vertTh">
+			<center>
+				<a href="/browse/200" title="More from this category">Video</a><br />
+				(<a href="/browse/205" title="More from this category">TV shows</a>)
+			</center>
+		</td>
+		<td>
+<div class="detName">			<a href="/torrent/4553044/Dirty_Sexy_Money_S02E07_The_Summer_House_HDTV_XviD-FQM_[eztv]" class="detLink" title="Details for Dirty Sexy Money S02E07 The Summer House HDTV XviD-FQM [eztv]">Dirty Sexy Money S02E07 The Summer House HDTV XviD-FQM [eztv]</a>
+</div>
+<a href="magnet:?xt=urn:btih:038afcbf064655596d0500af2b74ebddf731bd5d&dn=Dirty+Sexy+Money+S02E07+The+Summer+House+HDTV+XviD-FQM+%5Beztv%5D&tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A80&tr=udp%3A%2F%2Ftracker.publicbt.com%3A80&tr=udp%3A%2F%2Ftracker.istole.it%3A6969&tr=udp%3A%2F%2Ftracker.ccc.de%3A80" title="Download this torrent using magnet"><img src="//static.thepiratebay.gl/img/icon-magnet.gif" alt="Magnet link" /></a>			<a href="//torrents.thepiratebay.se/4553044/Dirty_Sexy_Money_S02E07_The_Summer_House_HDTV_XviD-FQM_[eztv].4553044.TPB.torrent" title="Download this torrent"><img src="//static.thepiratebay.gl/img/dl.gif" class="dl" alt="Download" /></a><img src="//static.thepiratebay.gl/img/icon_comment.gif" alt="This torrent has 10 comments." title="This torrent has 10 comments." /><a href="/user/eztv"><img src="//static.thepiratebay.gl/img/vip.gif" alt="VIP" title="VIP" style="width:11px;" border='0' /></a>
+			<font class="detDesc">Uploaded 12-04&nbsp;2008, Size 349.95&nbsp;MiB, ULed by <a class="detDesc" href="/user/eztv/" title="Browse eztv">eztv</a></font>
+		</td>
+		<td align="right">4</td>
+		<td align="right">0</td>
+	</tr>
+
+</table>
+</div>
+<div align="center"></div>
+			<div class="ads" id="sky-banner">
+				 <iframe src="http://cdn1.adexprt.com/exo_na/sky1.html" width="120" height="600" frameborder="0" scrolling="no"></iframe>
+			</div>
+	</div></div></div><!-- //div:content -->
+
+	<div id="foot" style="text-align:center;margin-top:1em;">
+
+			 <iframe src="http://cdn2.adexprt.com/exo_na/bottom.html" width="728" height="90" frameborder="0" scrolling="no"></iframe>
+				<p>
+			<a href="/login" title="Login">Login</a> | 
+			<a href="/register" title="Register">Register</a> | 
+			<a href="/language" title="Select language">Language / Select language</a> |
+			<a href="/about" title="About">About</a> |
+			<a href="/legal" title="Legal threats">Legal threats</a> |
+			<a href="/blog" title="Blog">Blog</a>
+			<br />
+			<a href="/contact" title="Contact us">Contact us</a> |
+			<a href="/policy" title="Usage policy">Usage policy</a> |
+			<a href="/downloads" title="Downloads">Downloads</a> |
+			<a href="http://www.promobay.org/" title="Promo" target="_NEW">Promo</a> |
+			<a href="/doodles" title="Doodles">Doodles</a> |
+			<a href="/searchcloud" title="Search Cloud">Search Cloud</a> |
+			<a href="/tags" title="Tag Cloud">Tag Cloud</a> |
+			<a href="http://suprbay.org/" title="Forum" target="_blank">Forum</a> |
+			<b><a href="http://www.bytelove.com/partners/thepiratebay/" title="TPB T-shirts" target="_blank">TPB T-shirts</a></b>
+			<br />
+			<a href="http://bayfiles.com" title="Bayfiles" target="_blank">Bayfiles</a> |
+			<a href="http://bayimg.com" title="BayImg" target="_blank">BayImg</a> |
+			<a href="http://www.pastebay.net" title="PasteBay" target="_blank">PasteBay</a> |
+			<!-- <a href="http://www.pirateshops.com" title="Pirate Shops" target="_blank">Pirate Shops</a> | -->
+			<a href="https://twitter.com/tpbdotorg" title="Twitter" target="_blank">Follow TPB on Twitter</a> |
+			<a href="https://www.facebook.com/ThePirateBayWarMachine" title="Facebook" target="_blank">Follow TPB on Facebook</a>
+			<br />
+		</p>
+
+<p id="footer" style="color:#666; font-size:0.9em; ">
+        6.214.099 registered users. Last updated 22:50:05.<br />
+        75.893.263 peers (59.799.961 seeders + 16.093.302 leechers) in 5.168.269 torrents.<br />
+</p>
+
+
+		<div id="fbanners">
+			<a href="/rss" class="rss" title="RSS"><img src="//static.thepiratebay.gl/img/rss_small.gif" alt="RSS" /></a>
+		</div><!-- // div:fbanners -->
+	</div><!-- // div:foot -->
+<script type="text/javascript" src="http://cdn1.adexprt.com/baypop/pop.js"></script><!-- abc: FR 0  -->
+</body>
+</html>"""
+
+
 class TestTpbSearch(unittest.TestCase):
 	""" Standard search testCase """
 	def setUp(self): #pylint: disable=C0103
@@ -404,9 +650,9 @@ class TestTpbSearch(unittest.TestCase):
 		""" Test parsing a sample result HTML and verifying
 		the extracted informations are corrects
 		"""
-		results = self.finder.extract_table_result(__sample_html__)
+		results = self.finder.extract_table_result(__sample_html_v2__)
 		self.assertTrue(results != None)
-		self.assertTrue(len(results) == 6)
+		self.assertEquals(len(results), 2)
 		#print("Found: {}\n".format(results[0].filename))
 		#print("Found magnet: {}\n".format(results[0].magnet))
 		wanted_name = "Dirty Sexy Money S02E07 The Summer House HDTV XviD-FQM [eztv]"
@@ -415,7 +661,7 @@ b74ebddf731bd5d&dn=Dirty+Sexy+Money+S02E07+The+Summer+House+HDTV+XviD-FQM+%5Be\
 ztv%5D&tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A80&tr=udp%3A%2F%2Ftracker.p\
 ublicbt.com%3A80&tr=udp%3A%2F%2Ftracker.istole.it%3A6969&tr=udp%3A%2F%2Ftracke\
 r.ccc.de%3A80"
-		self.assertTrue(results[0].filename == wanted_name)
+		self.assertEquals(results[0].filename, wanted_name)
 		self.assertTrue(results[0].magnet == wanted_magnet)
 		self.assertTrue(results[0].leechers == 7)
 

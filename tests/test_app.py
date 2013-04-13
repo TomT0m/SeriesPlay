@@ -9,7 +9,7 @@ from twisted.internet import reactor
 
 from gi.repository import Gtk #pylint: disable=E0611 
 
-from app.main_app import App 
+from app.main_app import App, VideoFinderService
 from app.controller import ControllerModule, VideoFinderController, PlayEventManager, \
 		ExternalPlayerHandler
 from app.config import Config
@@ -27,6 +27,7 @@ from snakeguice import Injector
 from gi.repository import GObject
 
 from datasource.episode_video_finder import BaseEpisodeVideoFinder
+import app.service
 
 class DummyVideoFinder(BaseEpisodeVideoFinder):
 	""" Testing class : do nothing """
@@ -75,6 +76,7 @@ class TestAppModule(Module):
 		binder.bind(Config, to_instance = config)
 		binder.bind(PlayEventManager, to = PlayEventManager)
 		binder.bind(SeriesData, to = FsManagedSeriesData)
+		binder.bind(VideoFinderService, to_instance = app.service.Service(None))
 
 def create_app():
 	""" Fake App factory function """
