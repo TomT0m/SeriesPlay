@@ -7,7 +7,7 @@ import twisted
 from twisted.internet import reactor
 
 
-from app.main_app import App
+from app.main_app import App, VideoFinderService
 from app.controller import VideoFinderController, PlayEventManager, \
 		ExternalPlayerHandler, get_combo_value
 from app.config import Config
