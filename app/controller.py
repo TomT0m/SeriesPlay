@@ -280,7 +280,7 @@ class PlayEventManager(object):
 			self.update_serie_view()
 		return False	
 	
-	def play_with_sub(self, widg):#pylint: disable=W0613
+	def play_windowed(self, widg):#pylint: disable=W0613
 		""" Callback when button is clicked
 		Actions
 		* Launches MPlayer, in a window,
@@ -306,7 +306,14 @@ class PlayEventManager(object):
 			filename = serie.get_absolute_filename(vid_list[0])
 		
 		path = serie.get_path_to_current_season()
-		subfile = path + serie.season.episode.get_subtitle_list()[0]
+		
+		
+		sublist = serie.season.episode.get_subtitle_list()
+		
+		if len(sublist) > 0 :
+			subfile = sublist[0]
+		else:
+			sublist = None
 		
 		if filename != None :
 			self.player_status.play(filename)
@@ -560,10 +567,13 @@ class PlayEventManager(object):
 		logging.info("Subs !! nb:{}".format(len(liste)))
 		if len(liste) == 0:
 			self.search_subtitles(None)
+		
+		box = self.app.getitems("CandidateSubsCombo")
 
-		ui.ui_utils.populate_combo_with_items(
-				self.app.getitem("CandidateSubsCombo"), 
-				liste)
+		ui.ui_utils.populate_combo_with_items(box, liste)
+		
+		box.entryCH
+
 		self.update_subtitle_file(self.app.getitem("CandidateSubsCombo"))		
 	def end(self, widg):
 		""" Callback to clean application & exit """
