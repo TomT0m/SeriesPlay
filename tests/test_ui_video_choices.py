@@ -87,10 +87,13 @@ class TestWindow(unittest.TestCase):
 			""" Timeout callback """
 			wait_timeout.callback(True)
 		reactor.callLater(2, called) #pylint: disable=E1101
-
+		
+		#ToClean:
+			
+		self.window.destroy()
+		self.window = window
 		
 		return wait_timeout
-	#test_populate.skip="investigating Segfault"
 
 class TestModel(unittest.TestCase):
 	""" Testing Torrent Results model """

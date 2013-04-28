@@ -20,7 +20,6 @@ class FakeApp(object):
 		""" Utility function, get a widget from is string ID """
         	#return self.widg_tree.get_widget(key)
 		return self.builder.get_object(key)
-
 	def stop(self):
 		self.window.hide()
 
@@ -37,8 +36,8 @@ class TestVideotorrentController(unittest.TestCase):
 	"""
 	def setUp(self): #pylint: disable=C0103
 		""" setting up """
-		self.app = None
 		print("setting up")
+		self.app = None
 
 	def tearDown(self):
 		self.app.stop()
@@ -47,5 +46,8 @@ class TestVideotorrentController(unittest.TestCase):
 		""" Fake app creation """
 		self.app = create_app()
 		control = VideoFinderController(self.app)
+		
+		combo = self.app.getitem("CandidateSubsCombo")
+		combo
 		return control
 	
