@@ -280,7 +280,7 @@ class PlayEventManager(object):
 			self.update_serie_view()
 		return False	
 	
-	def play_windowed(self, widg):#pylint: disable=W0613
+	def windowed_play(self, widg):#pylint: disable=W0613
 		""" Callback when button is clicked
 		Actions
 		* Launches MPlayer, in a window,
@@ -568,13 +568,14 @@ class PlayEventManager(object):
 		if len(liste) == 0:
 			self.search_subtitles(None)
 		
-		box = self.app.getitems("CandidateSubsCombo")
+		box = self.app.getitem("CandidateSubsCombo")
 
 		ui.ui_utils.populate_combo_with_items(box, liste)
 		
-		box.entryCH
+		# box.entryCH
 
-		self.update_subtitle_file(self.app.getitem("CandidateSubsCombo"))		
+		self.update_subtitle_file(box)
+		
 	def end(self, widg):
 		""" Callback to clean application & exit """
 
