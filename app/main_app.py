@@ -37,6 +37,10 @@ class VideoFinderService(object):
 
 class AppModule(Module):
 	""" snake guice application module configurator"""
+
+	def __init__(self, debug = None):
+		self.debug = None
+
 	def configure(self, binder):
 		""" binding definition """
 		
@@ -52,7 +56,7 @@ class AppModule(Module):
 		
 		binder.bind(SeriesData, to = FsManagedSeriesData)
 		binder.bind(VideoFinderService, 
-	      		to_instance = PipeService("video_finder_server.py"))
+	      		to_instance = PipeService(["video_finder_server.py", "-D", "debug"]))
 
 class App(object):
 	"""Class for main Manager app"""

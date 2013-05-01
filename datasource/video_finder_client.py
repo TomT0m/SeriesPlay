@@ -43,7 +43,7 @@ class EpisodeFinderClientProtocol(NetstringReceiver):
 
 	def ep_request(self, episode):
 		""" requests to deluge for @episode"""
-		info("sending request to deluge")
+		info("sending request to search")
 		self.sendString(self.encoder.encode(episode))
 		self.defer_search_results = defer.Deferred()
 		self.state = "waiting_results"
