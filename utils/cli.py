@@ -8,6 +8,8 @@ import re
 
 from logging import debug, info
 
+global_conf_file = os.path.expanduser("~/.config/.series_play")
+
 class FileNameError(Exception):
 	""" Exception thrown when command does not exists """
 	def __init__(self, value):

@@ -8,8 +8,8 @@ import twisted
 
 
 
-from tests.common_test import value, get_combo_value, create_fake_env, create_app, print_app_status
-
+from tests.common_test import value, create_fake_env, create_app, print_app_status
+from app.controller import get_combo_value
 
 
 
@@ -36,11 +36,11 @@ class TestVideotorrentController(unittest.TestCase):
 	def test_1(self):
 		""" Fake app creation """
 		tapp = create_app()
-		print_app_status(app)
+		print_app_status(tapp)
 
 		combo_box = tapp.getitem("SerieListCombo")
 		combo_box.set_active(0)
-		print_app_status(app)
+		print_app_status(tapp)
 		self.assertTrue(value(combo_box) == 'Plop')
 
 		season = tapp.selected_season()

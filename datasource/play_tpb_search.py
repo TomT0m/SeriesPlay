@@ -63,7 +63,7 @@ class TPBMagnetFinder(TorrentFinder):
 
 	def __init__(self):
 		TorrentFinder.__init__(self)
-		self.server = "thepiratebay.se"
+		self.server = "thepiratebay.sx"
 		self.parser = etree.HTMLParser()
 
 	def result_from_tablerow(self, row):

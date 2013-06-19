@@ -568,11 +568,11 @@ class PlayEventManager(object):
 		if len(liste) == 0:
 			self.search_subtitles(None)
 		
-		box = self.app.getitems("CandidateSubsCombo")
+		box = self.app.getitem("CandidateSubsCombo")
 
 		ui.ui_utils.populate_combo_with_items(box, liste)
 		
-		box.entryCH
+		# box.entryCH
 
 		self.update_subtitle_file(self.app.getitem("CandidateSubsCombo"))		
 	def end(self, widg):

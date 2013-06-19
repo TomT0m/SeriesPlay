@@ -5,7 +5,7 @@ It uses mplayer as video player.
 
 Programming languages : a mix of bash (started as bash script) and python
 
-Configuration : needs a ~/.play_season file with at least
+Configuration : needs a ~/.config/.series_play at least
 BASE=[base directory] # /myhome/Desktop/tv/ in my case
 
 Seasons must be in $BASE/[Serie name]/season {1,2,...}/ directories.

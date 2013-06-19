@@ -1,6 +1,7 @@
 #!/bin/bash
 
-FIC_CONF=~/.play_season
+FIC_CONF=~/.config/.series_play
+
 #MOTIF=SAISx@[sS]SAIS[Ee]0@[sS]SAIS[Ee]@[sS]SAIS[Ee]0@[sS]SAIS[Ee][Pp]@SAIS@SAIS.
 
 source gestion_config
@@ -8,7 +9,7 @@ source serie_functions
 
 read_conf "NAME" "" $FIC_CONF
 #read_conf "SEASON" 1 $FIC_CONF
-read_conf "BASE" "/home/tom/Desktop/Séries/" $FIC_CONF
+read_conf "BASE" "$HOME/Vidéos/Séries/" $FIC_CONF
 #read_conf "SEASON_MAX" 10 $FIC_CONF
 
 

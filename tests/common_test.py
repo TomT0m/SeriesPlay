@@ -6,7 +6,7 @@ from serie.fs_store import \
 		ConfigManager, FsManagedSerie, FsManagedEpisode, \
 		FsManagedSeason
 from app.controller import VideoFinderController, PlayEventManager, \
-		ExternalPlayerHandler, get_combo_value
+		ExternalPlayerHandler
 
 from serie.serie_manager import SeriesStore, SeriesData
 from serie.fs_store import FsSeriesStore, FsManagedSeriesData
@@ -29,7 +29,7 @@ class DummySeriesStore(SeriesStore):
 	""" Dummy serie store object, no real datas but should work as a duck"""
 	config_file_season_name = ".play_conf"	
 	config_file_serie_name = ".play_season"
-	config_file_abs_name = "~/.play_season"
+	config_file_abs_name = "~/.config/.series_play"
 
 	path_to_series_var = "BASE"
 	play_current_episode_var = "CUR"
@@ -38,6 +38,7 @@ class DummySeriesStore(SeriesStore):
 	serie_name_var = "NAME"
 	fps_var = "SUBFPS"
 
+	#pylint: disable=W0231
 	def __init__(self):
 		self.executer = None #command_executer()
 
@@ -54,27 +55,25 @@ class DummySeriesStore(SeriesStore):
 		""" dummy """
 		return os.path.join(os.getcwd(), "_tmp", nom)
 
-	def get_path_to_current_season(self):
-		""" dummy """
-		return os.path.join(self.get_path_to_serie(), "saison6")
-
+	#pylint: disable=W0613
 	def get_path_to_current_season_of(self, name):
 		""" dummy """
 		return os.path.join(self.get_absolute_path(), "Dexter", "saison6")
 	
+	#pylint: disable=W0613
 	def get_path_to_season(self, nom, numsaison):
 		""" dummy """
 		return os.path.join(self.get_absolute_path(), "Dexter", "saison6")
 
-	
+
 # config management 
 	def read_conf_var(self, config_file_path, var_name):
 		""" dummy """
 		return ConfigManager.read_conf_var(config_file_path, var_name)
 	
-	def write_conf_var(self, config_file_path, var_name, value):
+	def write_conf_var(self, config_file_path, var_name, var_value):
 		""" dummy """
-		return ConfigManager.write_conf_var(config_file_path, var_name, value)
+		return ConfigManager.write_conf_var(config_file_path, var_name, var_value)
 		
 	def read_num_conf_var(self, config_file_path, var_name):
 		""" dummy """
@@ -107,7 +106,7 @@ class DummySeriesStore(SeriesStore):
 
 		print("got serie list")
 		return liste_en_chaine
-
+	#pylint: disable=W0613
 	def get_current_episode(self, nom_serie, num_saison):
 		""" dummy """
 		return 6
@@ -240,11 +239,12 @@ class TestFinderModule(Module):
 		facto = FactoryFactory(DummyVideoFinder)
 		binder.bind(FactoryFactory, to_instance = facto)
 
-def print_app_status(tapp):
+def print_app_status(mapp):
 	""" App info printing """
-	combo_box = tapp.getitem("SerieListCombo")
-	print("Série : {}, S{}E{}".format( value(combo_box), tapp.selected_season(), tapp.selected_numep()))
+	combo_box = mapp.getitem("SerieListCombo")
+	print("Série : {}, S{}E{}".format( value(combo_box), mapp.selected_season(), mapp.selected_numep()))
 
 def value(combo):
 	""" Returns selected combo box value """
 	return combo.get_model().get_value(combo.get_active_iter(), 0)
+

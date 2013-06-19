@@ -6,13 +6,14 @@ Sample configuration class
 
 """
 from utils.cli import ConfigManager
+import utils.cli
 
 import os
 
 class Config:
 	""" Class used to manage a configuration for SeriePlay """
 	
-	config_file_abs_name = os.path.expanduser("~/.play_season")
+	config_file_abs_name = utils.cli.global_conf_file
 	
 	def __init__(self, config_file = None):
 		if config_file:
