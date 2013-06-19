@@ -153,7 +153,7 @@ class App(object):
 
 		dic = { "on_Play_clicked" : self.event_mgr.play,
 			"on_SlaveMplayerPlay_clicked" : \
-					self.event_mgr.windowed_play,
+					self.event_mgr.play_windowed,
 			"on_SerieListCombo_changed" : \
 					self.event_mgr.selected_serie_changed,
 			"on_MainWindow_destroy" : self.stop_app, \

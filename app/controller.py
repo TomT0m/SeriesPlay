@@ -572,7 +572,6 @@ class PlayEventManager(object):
 
 		ui.ui_utils.populate_combo_with_items(box, liste)
 		
-		# box.entryCH
 
 		self.update_subtitle_file(box)
 		

@@ -2,7 +2,7 @@
 
 source gestion_config
 
-BASE_FIC_CONF=~/.play_season
+BASE_FIC_CONF=~/.config/.series_play
 
 function get_season_rep(){
 	
@@ -41,7 +41,7 @@ function init_rep(){ # $1 rep, $2 numsais
 
 function get_serie_rep(){
 	NAME="$1"
-	read_conf "BASE" "/home/tom/Desktop/Séries/" "$BASE_FIC_CONF"
+	read_conf "BASE" "$HOME/Vidéos/Séries/" "$BASE_FIC_CONF"
 	echo "$BASE/$1"	
 }
 
