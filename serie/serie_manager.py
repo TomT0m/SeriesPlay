@@ -8,6 +8,8 @@ from logging import debug, info
 from snakeguice import inject
 from snakeguice.injector import IInjector
 
+from gi.repository import GObject 
+
 class SeriesStore(object):
 	""" Base class model for 
 	stored informations retrieval
