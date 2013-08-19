@@ -209,7 +209,9 @@ class PlayEventManager(object):
 		logging.info("Recherche d'une nouvelle série")
 		model = self.app.getitem("SerieListCombo").get_model()
 		serie_list = self.manager.get_serie_list()
+		
 		new_items = [x for x in serie_list if not self.serie_model.series.has_key(x) ]
+		
 		for new_serie in new_items:
 			self.serie_model.add_serie(new_serie)
 			model.append([new_serie])
