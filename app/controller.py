@@ -280,7 +280,7 @@ class PlayEventManager(object):
 			self.update_serie_view()
 		return False	
 	
-	def windowed_play(self, widg):#pylint: disable=W0613
+	def play_windowed(self, widg):#pylint: disable=W0613
 		""" Callback when button is clicked
 		Actions
 		* Launches MPlayer, in a window,
