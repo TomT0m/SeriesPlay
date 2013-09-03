@@ -230,8 +230,8 @@ class FsSeriesStore(SeriesStore):
 	def get_glob_pattern(self, season_num, num_ep, ext_list = None):
 		""" Get globbing pattern
 		"""
-		patterns =  ['({season:02d}|{season:d}).*{ep:02d}',
-				'[sS]{season:02d}[^0-9]( )?[xeE]{ep:02d}'
+		patterns =  ['({season:02d}|{season:d}).*{ep:02d}[^0-9]',
+				'[sS]{season:02d}[^0-9]( )?[xeE]{ep:02d}[^0-9]'
 			]
 		
 
