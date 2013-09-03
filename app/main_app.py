@@ -55,8 +55,8 @@ class AppModule(Module):
 		binder.bind(Config, to_instance = config)
 		
 		binder.bind(SeriesData, to = FsManagedSeriesData)
-		binder.bind(VideoFinderService, 
-	      		to_instance = PipeService(["video_finder_server.py", "-D", "debug"]))
+		binder.bind(VideoFinderService, \
+				to_instance = PipeService(["video_finder_server.py", "-D", "debug"]))
 
 class App(object):
 	"""Class for main Manager app"""
