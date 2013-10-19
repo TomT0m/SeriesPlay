@@ -24,14 +24,14 @@ from snakeguice.modules import Module
 
 from app.config import Config
 from app.service import PipeService, async_start
+from app.serie_controller import SeriesController
+
+from app.controller import ControllerFactory
 
 from twisted.internet import defer
 
-class ControllerFactory(object):
-	""" Factory creating a standard controller"""
-	def create(self, app, series, injector):
-		""" factory method"""
-		return PlayEventManager(app, series, injector)
+
+
 class VideoFinderService(object):
 	pass
 
@@ -120,36 +120,37 @@ class App(object):
 		self.store = store
 		self.config = config
 
-		#TODO: wtf ?
-		# bash_factory = BashManagedSerieFactory(self.store)
+		#TODO: change to use 'series' object and not store
 		serie_list = self.store.get_serie_list()
 
-		logging.info("creating serie manager")
-		self.series = injector.get_instance(SeriesData) # bash_factory.create_serie_manager()
-		logging.info("created serie manager")
-	
-		# View initialization : serie list combo
+		self.series = injector.get_instance(SeriesData) 
+		
+		# serie View & serie controller initialization
 
 		serie_list.insert(0, self.series.current_serie.name)
 		
 		self.event_mgr = controller_factory.create(self, self.series, injector)
-		ui.ui_utils.populate_combo_with_items(self.getitem("SerieListCombo"), \
-				serie_list)
+	
+		series_combo = self.getitem("SerieListCombo")
+		# self.series_controller = controller_factory.create_series_control(series_combo, self.series)
+
 		
-		# Control : data getter for serie initialization
+		# Controller : model initialization
 		
 		self.event_mgr.set_manager(self.store)
 			
+		
 		# View : initial screen setup 
 		
 
 		# control : monitoring current season 
-		# TODO: move to serie change control init
+		# TODO: move to SeriesController
 		self.event_mgr.put_monitor_on_saison()
 	
 		
 		# Control initialization setting up callbacks 
 		# on view alteration by user events
+		# TODO: move to view initialisation
 
 		dic = { "on_Play_clicked" : self.event_mgr.play,
 			"on_SlaveMplayerPlay_clicked" : \

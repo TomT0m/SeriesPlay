@@ -116,8 +116,8 @@ class TestFsStore(unittest.TestCase):
 		self.assertTrue(cur_episode == next_episode.number)
 		self.assertTrue(cur_episode == 2)
 
-		self.assertTrue(len( next_episode.get_video_list() ) == 1)
-		self.assertTrue(len( serie.get_video_list() ) == 1)
+		self.assertEquals(len( next_episode.get_video_list() ), 1)
+		self.assertEquals(len( serie.get_video_list() ), 1)
 
 	def test_manager(self):
 		""" Test of manager : retrieving season path"""
@@ -155,17 +155,20 @@ class TestFsStore(unittest.TestCase):
 		bash_manager = FsSeriesStore(self.get_global_conffifile_fullpath())
 
 		pattern = bash_manager.get_glob_pattern(1, 1, ["avi", "flv"])
-		self.assertTrue(re.search(pattern, 'Bidou s01e01.avi'))
-		self.assertFalse(re.search(pattern, 'Bidou s02e01.avi'))
-		self.assertTrue(re.search(pattern, 'Bidou s01e01.flv'))
-		self.assertFalse(re.search(pattern, 'Bidou s01e01.plop'))
+		print(pattern)
+		re.compile(pattern)
+		self.assertTrue(re.search(pattern, u'Bidou s1e01.avi'))
+		self.assertTrue(re.search(pattern, u'Bidou s01e01.avi'))
+		self.assertFalse(re.search(pattern, u'Bidou s02e01.avi'))
+		self.assertTrue(re.search(pattern, u'Bidou s01e01.flv'))
+		self.assertFalse(re.search(pattern, u'Bidou s01e01.plop'))
 
 
 		pattern = bash_manager.get_glob_pattern(1, 1, ["srt"])
 
-		self.assertTrue(re.search(pattern, 'Bidou s01e01.srt'))
-		self.assertFalse(re.search(pattern, 'Bidou s01e01.plop'))
+		self.assertTrue(re.search(pattern, u'Bidou s01e01.srt'))
+		self.assertFalse(re.search(pattern, u'Bidou s01e01.plop'))
 		self.assertTrue(re.search(pattern, 
-			'Dexter - 1x01 - Dexter.720p.BluRay.BoB.en.srt'))
-
+			u'Dexter - 1x01 - Dexter.720p.BluRay.BoB.en.srt'))
+		self.assertFalse(re.search(pattern, u'Bidou 1 and 1.avi'))
 

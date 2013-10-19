@@ -35,7 +35,19 @@ from utils.cli import CommandExecuter, CommandLineGenerator
 from serie.serie_manager import Episode
 from snakeguice.modules import Module
 
+from app.serie_controller import SeriesController
+
 from utils.factory import FactoryFactory
+
+class ControllerFactory(object):
+	""" Factory creating a standard controller"""
+	def create(self, app, series, injector):
+		""" factory method"""
+		return PlayEventManager(app, series, injector)
+	def create_series_control(self, list_combo, series, injector):
+		""" method to build the Glib series controller """
+		return SeriesController(list_combo, series, injector)
+
 
 class ExternalPlayerHandler(object):
 	""" Interface for external player handling 
@@ -199,6 +211,9 @@ class PlayEventManager(object):
 		self.monitor_serie = None # making an attribute to prevent gc
 		self.manager = None
 
+		factory = injector.get_instance(ControllerFactory)
+		self.series_constroller = factory.create_series_control(self.app.getitem("SerieListCombo"), serie_model, injector)
+
 		self.update_serie_view()
 
 	def update_serie_list(self, 
@@ -282,7 +297,7 @@ class PlayEventManager(object):
 			self.update_serie_view()
 		return False	
 	
-	def windowed_play(self, widg):#pylint: disable=W0613
+	def play_windowed(self, widg):#pylint: disable=W0613
 		""" Callback when button is clicked
 		Actions
 		* Launches MPlayer, in a window,
@@ -474,6 +489,7 @@ class PlayEventManager(object):
 			val = widg.get_model().get_value(widg.get_active_iter(), 0)
 			self.serie_model.current_serie = val
 			self.update_serie_view()
+	
 	def put_monitor_on_saison(self):
 		""" Set up monitoring of directory
 		* Installs monitors on current season directory
